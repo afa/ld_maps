@@ -124,7 +124,8 @@ namespace :satmap do
 
   desc 'load genshtab maps 50k'
   task genshtab: :environment do
-    ld_map_gen(%w(a b c d e f g h i j k l m n o p))
+    ld_map_gen(%w(a b c d e f g h i j))
+    # ld_map_gen(%w(a b c d e f g h i j k l m n o p))
   end
   # namespace :genshtab do
   #   desc 'load genshtab maps 50k'
