@@ -2,9 +2,9 @@ source 'https://rubygems.org'
 
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
-gem 'rails', '4.1.5'
+# gem 'rails', '4.1.5'
 # Use postgresql as the database for Active Record
-gem 'pg'
+# gem 'pg'
 # Use SCSS for stylesheets
 # gem 'sass-rails', '~> 4.0.3'
 # Use Uglifier as compressor for JavaScript assets
@@ -35,10 +35,15 @@ gem 'pg'
 # Use debugger
 # gem 'debugger', group: [:development, :test]
 
+gem 'thor'
 gem 'mechanize'
 gem 'multi_json'
 gem 'oj'
-# group :test, :development do
+gem 'dry-initializer'
+gem 'dry-monads'
+gem 'dry-types'
+group :test, :development do
+  gem 'rspec'
 #   gem 'rspec-rails'
 #   gem 'factory_girl_rails'
-# end
+end
