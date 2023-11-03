@@ -16,6 +16,13 @@ class Gen < BaseInteractor
   private
 
   def ld_map_gen
+    # list =  List(
+    #   [Try {
+    #     agent = Mechanize.new
+    #     initpage = agent.get('https://satmaps.info/map.php?s=001m&map=n-37')
+    #   }.to_result]
+    # )
+    
     initpage = load_init("http://satmaps.info/genshtab.php")
     list = collect_links(initpage)
     load_links(list)
@@ -23,8 +30,10 @@ class Gen < BaseInteractor
 
   def load_links(list)
     pp :loads, list.value.size
-    list.bind { |item| extract_links(item, /download-map.php/) }.bind { |mech| pp mech.uri; [mech.uri] }
-    list.bind { |item| extract_links(item, /download-ref.php/) }.bind { |mech| pp mech.uri; [mech.uri] }
+    list.bind { |item| extract_links(item, /download-map.php/) }.bind { |mech| [load_single_gif(mech)] }
+    list.bind { |item| extract_links(item, /download-ref.php/) }.bind { |mech| [load_single_map(mech)] }
+    # list.bind { |item| extract_links(item, /download-map.php/) }.bind { |mech| pp mech.uri; [mech.uri] }
+    # list.bind { |item| extract_links(item, /download-ref.php/) }.bind { |mech| pp mech.uri; [mech.uri] }
   end
 
   def collect_links(initpage)
@@ -104,7 +113,6 @@ class Gen < BaseInteractor
 
   def ld_it(link, fname = nil)
     resp = yield fetch_link(link)
-    pp resp
     resp_save(resp, fname)
   end
 
@@ -121,45 +129,47 @@ class Gen < BaseInteractor
   end
 
   def resp_save(resp, fname)
-    unless m.response['content-type'] == 'text/html'
-      # puts m.filename
-      # p m.response['content-type'] #!!!
-      # p m.response['filename']
-      # p m.response
-      # p m.response.headers
-      # p m.header
-      # exit
-      # if m.is_a?(Mechanize::File) && %w(.map .png .jpg .gif .tif .tiff .jpeg).include?(File.extname(m.filename.downcase))
-      if m.is_a?(Mechanize::File)
-        name = yield Maybe { fname }.or(m.filename)
-        puts name
-        m.save(name)
+    Try {
+      unless resp.response['content-type'] == 'text/html'
+        # puts resp.filename
+        # p resp.response['content-type'] #!!!
+        # p resp.response['filename']
+        # p resp.response
+        # p resp.response.headers
+        # p resp.header
+        # exit
+        # if resp.is_a?(Mechanize::File) && %w(.map .png .jpg .gif .tif .tiff .jpeg).include?(File.extname(resp.filename.downcase))
+        if resp.is_a?(Mechanize::File)
+          name = yield Maybe(fname).or(resp.filename)
+          puts name
+          resp.save(name)
+        end
       end
-    end
+    }.to_result
   end
 
-  def do_retry(*params, &blk)
-    Try {
-      att = 0
-      if blk
-        begin
-          val = blk.call(*params)
-        rescue => e
-          att += 1
-          if att < 10
-            puts "retry ##{att}"
-            sleep 10
-            retry
-          else
-            Rails.logger.info "=== Failed attempt -- #{e.to_s}"
-            puts "=== Failed attempt -- #{e.to_s}"
-            raise
-          end
-        end
-        return val
-      end
-    }
-  end
+  # def do_retry(*params, &blk)
+  #   Try {
+  #     att = 0
+  #     if blk
+  #       begin
+  #         val = blk.call(*params)
+  #       rescue => e
+  #         att += 1
+  #         if att < 10
+  #           puts "retry ##{att}"
+  #           sleep 10
+  #           retry
+  #         else
+  #           Rails.logger.info "=== Failed attempt -- #{e.to_s}"
+  #           puts "=== Failed attempt -- #{e.to_s}"
+  #           raise
+  #         end
+  #       end
+  #       return val
+  #     end
+  #   }
+  # end
 
   def ld_map_ggc(sz)
     Try {
