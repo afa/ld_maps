@@ -1,6 +1,9 @@
 ENV['BUNDLE_GEMFILE'] ||= File.expand_path('../Gemfile', __FILE__)
 require 'bundler/setup' if File.exist?(ENV['BUNDLE_GEMFILE'])
 
+require 'sequel'
+require_relative './app'
+
 $LOAD_PATH << File.expand_path('../app/interactors', __FILE__)
 
 # autoload classes (app/)
@@ -29,3 +32,18 @@ def autold(path)
   end
 end
 Dir['./app/*'].each { |p| autold(p) }
+
+begin
+  App.config = YAML.load_file('config.yml', symbolize_names: true)
+rescue Exception => e
+  puts "config not loaded with #{e.message}"
+  raise
+end
+
+begin
+  db_url = App.config[:db] || ENV['DATABASE_URL'] || 'postgres://localhost/load_map'
+  App.db = Sequel.connect(db_url)
+rescue Exception => e
+  puts "db not connected with #{e.message}"
+  raise
+end

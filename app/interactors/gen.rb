@@ -16,14 +16,7 @@ class Gen < BaseInteractor
   private
 
   def ld_map_gen
-    # list =  List(
-    #   [Try {
-    #     agent = Mechanize.new
-    #     initpage = agent.get('https://satmaps.info/map.php?s=001m&map=n-37')
-    #   }.to_result]
-    # )
-    
-    initpage = load_init("http://satmaps.info/genshtab.php")
+    initpage = load_init(App.config.maps_url)
     list = collect_links(initpage)
     load_links(list)
   end
@@ -32,8 +25,6 @@ class Gen < BaseInteractor
     pp :loads, list.value.size
     list.bind { |item| extract_links(item, /download-map.php/) }.bind { |mech| [load_single_gif(mech)] }
     list.bind { |item| extract_links(item, /download-ref.php/) }.bind { |mech| [load_single_map(mech)] }
-    # list.bind { |item| extract_links(item, /download-map.php/) }.bind { |mech| pp mech.uri; [mech.uri] }
-    # list.bind { |item| extract_links(item, /download-ref.php/) }.bind { |mech| pp mech.uri; [mech.uri] }
   end
 
   def collect_links(initpage)
@@ -46,37 +37,6 @@ class Gen < BaseInteractor
     lvl4 = scan_links(lvl3, /^http:\/\/satmaps\.info\/map\.php\?s=/)
     pp lvl4.head, lvl4.value.size
     lvl1 + lvl2 + lvl3 + lvl4
-
-    # extract_links(initpage, /^genshtab.php\?l=[a-z]{1,2}$/).fmap do |lnk1|
-    #   pp lnk1
-    #   # p 'lnk1', lnk1.uri.query.split('&').map{|s| s.split('=') }.inject({}){|r, i| r.merge Hash[*i] }
-    #   page1 = do_retry{ click_try(lnk1) }.tap{|x| pp x}
-    #   extract_links(page1, /^genshtab.php\?sq=[0-9a-z]{2,4}/).fmap do |lnk2|
-    #     # p 'lnk2', lnk2.uri.query.split('&').map{|s| s.split('=') }.inject({}){|r, i| r.merge Hash[*i] }
-    #     next if skip_templates.size > 0 && lnk2.uri.to_s.split('?').last =~ /^sq=(#{skip_templates.join('|')})/
-    #     page2 = do_retry{ click_try(lnk2) }
-    #     extract_links(page2, /^genshtab.php\?lst=[a-z0-9_]{4,}/).fmap do |lnk3|
-    #       # p 'lnk3', lnk3.uri.query.split('&').map{|s| s.split('=') }.inject({}){|r, i| r.merge Hash[*i] }
-    #       puts lnk3.uri.to_s.split('?').last
-    #       page3 = do_retry{ click_try(lnk3) }
-    #       pp links.image
-    #       extract_links(page3, /^http:\/\/satmaps\.info\/map\.php\?s=/).fmap do |lnk4|
-    #         page4 = do_retry{ click_try(lnk4) }
-    #         pp page4
-    #         extract_links(page4, /^download-map.php/).fmap do |m_lnk|
-    #           links.image << m_lnk
-    #           pp m_lnk
-    #           # load_single_gif(m_lnk)
-    #         end
-    #         extract_links(page4, /^download-ref.php/).fmap do |r_lnk|
-    #           links.map << r_lnk
-    #           # load_single_map(r_lnk)
-    #         end
-    #       end
-    #     end
-    #   end
-    # end
-
   end
 
   def scan_links(list, regexp)
@@ -84,7 +44,6 @@ class Gen < BaseInteractor
       .bind { |item| extract_links(item, regexp) }
       .bind do |lnk1|
         print '.'
-        # p 'lnk1', lnk1.uri.query.split('&').map{|s| s.split('=') }.inject({}){|r, i| r.merge Hash[*i] }
         [fetch_link(lnk1)]
       end
   end
@@ -100,7 +59,6 @@ class Gen < BaseInteractor
   end
 
   def extract_links(mech, ref)
-    # List
     mech.bind { |m_page| List(yield Try { m_page.links_with(href: ref) }) }
   end
 
@@ -147,29 +105,6 @@ class Gen < BaseInteractor
       end
     }.to_result
   end
-
-  # def do_retry(*params, &blk)
-  #   Try {
-  #     att = 0
-  #     if blk
-  #       begin
-  #         val = blk.call(*params)
-  #       rescue => e
-  #         att += 1
-  #         if att < 10
-  #           puts "retry ##{att}"
-  #           sleep 10
-  #           retry
-  #         else
-  #           Rails.logger.info "=== Failed attempt -- #{e.to_s}"
-  #           puts "=== Failed attempt -- #{e.to_s}"
-  #           raise
-  #         end
-  #       end
-  #       return val
-  #     end
-  #   }
-  # end
 
   def ld_map_ggc(sz)
     Try {

@@ -3,6 +3,7 @@ GEM
   specs:
     addressable (2.8.5)
       public_suffix (>= 2.0.2, < 6.0)
+    bigdecimal (3.1.4)
     concurrent-ruby (1.2.2)
     connection_pool (2.4.1)
     diff-lcs (1.5.0)
@@ -50,6 +51,7 @@ GEM
     nokogiri (1.15.4-arm64-darwin)
       racc (~> 1.4)
     oj (3.16.1)
+    pg (1.5.4)
     public_suffix (5.0.3)
     racc (1.7.1)
     rspec (3.12.0)
@@ -66,6 +68,8 @@ GEM
       rspec-support (~> 3.12.0)
     rspec-support (3.12.0)
     rubyntlm (0.6.3)
+    sequel (5.74.0)
+      bigdecimal
     thor (1.2.2)
     unf (0.1.4)
       unf_ext
@@ -84,7 +88,9 @@ DEPENDENCIES
   mechanize
   multi_json
   oj
+  pg
   rspec
+  sequel
   thor
 
 BUNDLED WITH

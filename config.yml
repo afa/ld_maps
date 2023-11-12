@@ -1,0 +1,3 @@
+---
+db: 'postgres:///load_map'
+maps_url: "http://satmaps.info/genshtab.php"
