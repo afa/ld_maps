@@ -39,7 +39,7 @@ jobs:
         ruby-version: ${{ matrix.ruby-version }}
         bundler-cache: true # runs 'bundle install' and caches installed gems automatically
     - name: Run lints
-      run: bundle exec rubocop ${{ steps.get_file_changes.outputs.files}}
+      run: bundle exec rubocop --force-exclusion ${{ steps.get_file_changes.outputs.files}}
 
   test:
     runs-on: ubuntu-latest
