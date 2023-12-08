@@ -12,6 +12,9 @@ gem 'dry-monads'
 gem 'dry-types'
 group :test, :development do
   gem 'rspec'
+  gem 'rubocop'
+  gem 'rubocop-sequel'
+  gem 'rubocop-rspec'
 #   gem 'rspec-rails'
 #   gem 'factory_girl_rails'
 end
