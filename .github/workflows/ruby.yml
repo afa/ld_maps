@@ -25,6 +25,11 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Get file changes
+      id: get_file_changes
+      uses: trilom/file-changes-action@v1.2.3
+      with:
+        output: ' '
     - name: Set up Ruby
     # To automatically get bug fixes and new Ruby versions for ruby/setup-ruby,
     # change this to (see https://github.com/ruby/setup-ruby#versioning):
@@ -34,7 +39,7 @@ jobs:
         ruby-version: ${{ matrix.ruby-version }}
         bundler-cache: true # runs 'bundle install' and caches installed gems automatically
     - name: Run lints
-      run: bundle exec rubocop
+      run: bundle exec rubocop ${{ steps.get_file_changes.outputs.files}}
 
   test:
     runs-on: ubuntu-latest
