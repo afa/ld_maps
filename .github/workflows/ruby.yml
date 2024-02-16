@@ -43,8 +43,8 @@ jobs:
       run: bundle install
     - name: Bundle audit
       run: |
-        bundle exec bundle-audit update
-        bundle exec bundle-audit
+        "bundle exec bundle-audit update"
+        "bundle exec bundle-audit"
   lint:
     runs-on: ubuntu-latest
     strategy:
