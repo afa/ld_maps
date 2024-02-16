@@ -17,6 +17,7 @@ on:
 permissions:
   contents: read
 
+jobs:
   audit:
     runs-on: ubuntu-latest
     strategy:
@@ -44,7 +45,6 @@ permissions:
       run: |
         bundle exec bundle-audit update
         bundle exec bundle-audit
-jobs:
   lint:
     runs-on: ubuntu-latest
     strategy:
