@@ -8,10 +8,11 @@
 name: Ruby
 
 on:
-  push:
-    # branches: [ "master" ]
+  push: 
   pull_request:
-    branches: [ "master", "develop" ]
+    branches:
+      - master
+      - develop
 
 permissions:
   contents: read
