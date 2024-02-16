@@ -60,7 +60,7 @@ jobs:
         bundler-cache: true # runs 'bundle install' and caches installed gems automatically
     - name: Run tests
       run: bundle exec rspec
-      - name: Bundle audit
-        run: |
-          bundle exec bundle-audit update
-          bundle exec bundle-audit
+    - name: Bundle audit
+      run: |
+        bundle exec bundle-audit update
+        bundle exec bundle-audit
