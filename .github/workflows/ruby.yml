@@ -61,6 +61,6 @@ jobs:
     - name: Run tests
       run: bundle exec rspec
     - name: Bundle audit
-      run: |
-        bundle exec bundle-audit update
-        bundle exec bundle-audit
+      run:
+        - bundle exec bundle-audit update
+        - bundle exec bundle-audit
