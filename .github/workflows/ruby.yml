@@ -49,13 +49,15 @@ jobs:
     - name: Install gems
       run: |
         bundle config path vendor/bundle
-        bundle install --jobs 4 --retry 3
+        bundle install --binstubs=./bin --jobs 4 --retry 3
     # - name: Setup bundle
     #   run: bundle install
     - name: Bundle audit
       run: |
-        bundle exec bundle-audit update
-        bundle exec bundle-audit
+        ./bin/bundle-audit update
+        ./bin/bundle-audit
+        # bundle exec bundle-audit update
+        # bundle exec bundle-audit
   lint:
     runs-on: ubuntu-latest
     strategy:
