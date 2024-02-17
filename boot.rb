@@ -2,6 +2,7 @@ ENV['BUNDLE_GEMFILE'] ||= File.expand_path('../Gemfile', __FILE__)
 require 'bundler/setup' if File.exist?(ENV['BUNDLE_GEMFILE'])
 
 require 'sequel'
+require 'yaml'
 require_relative './app'
 
 $LOAD_PATH << File.expand_path('../app/interactors', __FILE__)
@@ -43,6 +44,8 @@ end
 begin
   db_url = App.config[:db] || ENV['DATABASE_URL'] || 'postgres://localhost/load_map'
   App.db = Sequel.connect(db_url)
+  App.db.extension :pg_json
+  # App.db.wrap_json_primitives = true
 rescue Exception => e
   puts "db not connected with #{e.message}"
   raise
