@@ -39,12 +39,23 @@ jobs:
       with:
         ruby-version: ${{ matrix.ruby-version }}
         bundler-cache: true # runs 'bundle install' and caches installed gems automatically
-    - name: Setup bundle
-      run: bundle install
+    - name: Ruby gem cache
+      uses: actions/cache@v2
+      with:
+        path: vendor/bundle
+        key: ${{ runner.os }}-gems-v1-${{ hashFiles('**/Gemfile.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-gems-v1-
+    - name: Install gems
+      run: |
+        bundle config path vendor/bundle
+        bundle install --jobs 4 --retry 3
+    # - name: Setup bundle
+    #   run: bundle install
     - name: Bundle audit
       run: |
-        "bundle exec bundle-audit update"
-        "bundle exec bundle-audit"
+        bundle exec bundle-audit update
+        bundle exec bundle-audit
   lint:
     runs-on: ubuntu-latest
     strategy:
