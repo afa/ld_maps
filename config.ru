@@ -1,4 +1,21 @@
-# This file is used by Rack-based servers to start the application.
+require 'bundler/setup'
+Bundler.require(:default)
 
-require ::File.expand_path('../config/environment',  __FILE__)
-run Rails.application
+require './boot'
+run App
+
+# map '/l' do
+#   run LinkManager
+# end
+
+# # map '/c' do
+# #   run CitateManager
+# # end
+
+# map '/b' do
+#   run BlogManager
+# end
+
+# map '/' do
+#   run AppManager
+# end

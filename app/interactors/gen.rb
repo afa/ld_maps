@@ -21,7 +21,7 @@ class Gen < BaseInteractor
   private
 
   def ld_map_gen
-    yield startup(App.config.maps_url)
+    pp yield startup(App.config.fetch(:maps_url))
     raise
     initpage = load_init
     list = collect_links(initpage)
@@ -29,9 +29,8 @@ class Gen < BaseInteractor
   end
 
   def startup(url)
-    MayBe(Page.where(url:).first)
+    Maybe(Page.where(url:).first)
       .or { Page.create(url:, state: :init) }
-      .to_result
   end
 
   def load_init
