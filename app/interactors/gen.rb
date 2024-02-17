@@ -21,9 +21,24 @@ class Gen < BaseInteractor
   private
 
   def ld_map_gen
-    initpage = load_init(App.config.maps_url)
+    yield startup(App.config.maps_url)
+    raise
+    initpage = load_init
     list = collect_links(initpage)
     load_links(list)
+  end
+
+  def startup(url)
+    MayBe(Page.where(url:).first)
+      .or { Page.create(url:, state: :init) }
+      .to_result
+  end
+
+  def load_init
+    Try {
+    agent = Mechanize.new
+    initpage = agent.get(url)
+    }.to_result
   end
 
   def load_links(list)
@@ -65,13 +80,6 @@ class Gen < BaseInteractor
 
   def extract_links(mech, ref)
     mech.bind { |m_page| List(yield Try { m_page.links_with(href: ref) }) }
-  end
-
-  def load_init(url)
-    Try {
-    agent = Mechanize.new
-    initpage = agent.get(url)
-    }.to_result
   end
 
   def ld_it(link, fname = nil)
