@@ -1,6 +1,7 @@
 source 'https://rubygems.org'
 
 
+gem 'bundle-audit'
 gem 'pg'
 gem 'sequel'
 gem 'thor'
