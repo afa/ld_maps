@@ -54,6 +54,7 @@ jobs:
     #   run: bundle install
     - name: Bundle audit
       run: |
+        ls bin
         ./bin/bundle-audit update
         ./bin/bundle-audit
         # bundle exec bundle-audit update
