@@ -21,7 +21,10 @@ class Gen < BaseInteractor
   private
 
   def ld_map_gen
-    pp yield startup(App.config.fetch(:maps_url))
+    yield startup(App.config.fetch(:maps_url))
+    pages = yield load_init_pages
+    pp pages
+    pp yield init_mechanize
     raise
     initpage = load_init
     list = collect_links(initpage)
@@ -33,6 +36,17 @@ class Gen < BaseInteractor
       .or { Page.create(url:, state: :init) }
   end
 
+  def init_mechanize
+    Try {
+      Mechanize.new
+    }.to_result
+  end
+
+  def load_init_pages
+    Maybe(Page.dataset.state_init.limit(100).to_a).to_result
+  end
+
+  # -----------------
   def load_init
     Try {
     agent = Mechanize.new
