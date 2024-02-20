@@ -9,7 +9,14 @@ class Gen < BaseInteractor
   option :path
   option :skip_templates, default: -> { %w[] }
 
-  attr_reader :links, :logger
+  attr_reader :session, :links, :logger
+
+  LINKS_REGEXPS = {
+    /^genshtab.php\?l=[a-z]{1,2}$/ => { lvl: 1 },
+    /^genshtab.php\?sq=[0-9a-z]{2,4}/ => { lvl: 2 },
+    /^genshtab.php\?lst=[a-z0-9_]{4,}/ => { lvl: 3 },
+    /^http:\/\/satmaps\.info\/map\.php\?s=/ => { lvl: 4 }
+  }.freeze
 
   def call
     @links = Struct.new(:map, :image).new([], [])
@@ -23,12 +30,16 @@ class Gen < BaseInteractor
   def ld_map_gen
     yield startup(App.config.fetch(:maps_url))
     pages = yield load_init_pages
-    pp pages
-    pp yield init_mechanize
+    @session = yield init_mechanize
+    yield scan_links_from(pages)
     raise
     initpage = load_init
     list = collect_links(initpage)
     load_links(list)
+    pp Page.dataset.state_init.count,
+       Page.dataset.state_scanned.count,
+       Page.dataset.state_checked.count,
+       Page.dataset.state_saved.count
   end
 
   def startup(url)
@@ -43,16 +54,44 @@ class Gen < BaseInteractor
   end
 
   def load_init_pages
-    Maybe(Page.dataset.state_init.limit(100).to_a).to_result
+    List(Page.dataset.state_init.limit(100).to_a)
+      .fmap { |x| Maybe(x) }
+      .typed(Maybe)
+      .traverse
+      .to_result
+  end
+
+  def scan_links_from(pages)
+    pages.bind do |page|
+      mech = session.get(page.url)
+      list = yield parse_page_links(mech)
+      yield build_page_links(list)
+      page.links 
+      page.state_scanned!
+      page.save_changes
+    end
+  end
+
+  def parse_page_links(mech)
+    LINKS_REGEXPS.each_with_object({}) do |(regexp, opts), data|
+      data[opts[:lvl]] = mech.links_with(href: regexp)
+    end
+
+
+    raise
+    lvl1 = scan_links(List([initpage]), /^genshtab.php\?l=[a-z]{1,2}$/)
+    lvl2 = scan_links(lvl1, /^genshtab.php\?sq=[0-9a-z]{2,4}/)
+    lvl3 = scan_links(lvl2, /^genshtab.php\?lst=[a-z0-9_]{4,}/)
+    lvl4 = scan_links(lvl3, /^http:\/\/satmaps\.info\/map\.php\?s=/)
   end
 
   # -----------------
-  def load_init
-    Try {
-    agent = Mechanize.new
-    initpage = agent.get(url)
-    }.to_result
-  end
+  # def load_init
+  #   Try {
+  #   agent = Mechanize.new
+  #   initpage = agent.get(url)
+  #   }.to_result
+  # end
 
   def load_links(list)
     pp :loads, list.value.size
