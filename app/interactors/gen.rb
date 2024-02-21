@@ -62,27 +62,23 @@ class Gen < BaseInteractor
   end
 
   def scan_links_from(pages)
-    pages.bind do |page|
-      mech = session.get(page.url)
-      list = yield parse_page_links(mech)
-      yield build_page_links(list)
-      page.links 
-      page.state_scanned!
-      page.save_changes
-    end
+      pages.bind do |page|
+        mech = session.get(page.url)
+        list = yield parse_page_links(mech)
+        yield build_page_links(list)
+        page.links = list.value
+        page.state_scanned!
+        page.save_changes
+        [page]
+      end
   end
 
   def parse_page_links(mech)
-    LINKS_REGEXPS.each_with_object({}) do |(regexp, opts), data|
-      data[opts[:lvl]] = mech.links_with(href: regexp)
-    end
-
-
-    raise
-    lvl1 = scan_links(List([initpage]), /^genshtab.php\?l=[a-z]{1,2}$/)
-    lvl2 = scan_links(lvl1, /^genshtab.php\?sq=[0-9a-z]{2,4}/)
-    lvl3 = scan_links(lvl2, /^genshtab.php\?lst=[a-z0-9_]{4,}/)
-    lvl4 = scan_links(lvl3, /^http:\/\/satmaps\.info\/map\.php\?s=/)
+    Try {
+      LINKS_REGEXPS.each_with_object({}) do |(regexp, opts), data|
+        mech.links_with(href: regexp).each { |link| data.merge!(link.to_s => opts[:lvl]) }
+      end
+    }
   end
 
   # -----------------
@@ -99,17 +95,17 @@ class Gen < BaseInteractor
     list.bind { |item| extract_links(item, /download-ref.php/) }.bind { |mech| [load_single_map(mech)] }
   end
 
-  def collect_links(initpage)
-    lvl1 = scan_links(List([initpage]), /^genshtab.php\?l=[a-z]{1,2}$/)
-    pp lvl1.head, lvl1.value.size
-    lvl2 = scan_links(lvl1, /^genshtab.php\?sq=[0-9a-z]{2,4}/)
-    pp lvl2.head, lvl2.value.size
-    lvl3 = scan_links(lvl2, /^genshtab.php\?lst=[a-z0-9_]{4,}/)
-    pp lvl3.head, lvl3.value.size
-    lvl4 = scan_links(lvl3, /^http:\/\/satmaps\.info\/map\.php\?s=/)
-    pp lvl4.head, lvl4.value.size
-    lvl1 + lvl2 + lvl3 + lvl4
-  end
+  # def collect_links(initpage)
+  #   lvl1 = scan_links(List([initpage]), /^genshtab.php\?l=[a-z]{1,2}$/)
+  #   pp lvl1.head, lvl1.value.size
+  #   lvl2 = scan_links(lvl1, /^genshtab.php\?sq=[0-9a-z]{2,4}/)
+  #   pp lvl2.head, lvl2.value.size
+  #   lvl3 = scan_links(lvl2, /^genshtab.php\?lst=[a-z0-9_]{4,}/)
+  #   pp lvl3.head, lvl3.value.size
+  #   lvl4 = scan_links(lvl3, /^http:\/\/satmaps\.info\/map\.php\?s=/)
+  #   pp lvl4.head, lvl4.value.size
+  #   lvl1 + lvl2 + lvl3 + lvl4
+  # end
 
   def scan_links(list, regexp)
     list
