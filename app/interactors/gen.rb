@@ -65,6 +65,7 @@ class Gen < BaseInteractor
       pages.bind do |page|
         mech = session.get(page.url)
         list = yield parse_page_links(mech)
+        pp list
         yield build_page_links(list)
         page.links = list.value
         page.state_scanned!
@@ -76,7 +77,9 @@ class Gen < BaseInteractor
   def parse_page_links(mech)
     Try {
       LINKS_REGEXPS.each_with_object({}) do |(regexp, opts), data|
-        mech.links_with(href: regexp).each { |link| data.merge!(link.to_s => opts[:lvl]) }
+        mech.links_with(href: regexp).each do |link|
+          data.merge!(link.resolved_uri => { lvl: opts[:lvl], text: link.text })
+        end
       end
     }
   end
