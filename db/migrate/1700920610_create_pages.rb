@@ -7,11 +7,6 @@ Sequel.migration do
       column :state, :integer, null: false, default: 0
       column :page, :text
       jsonb :links
-
-      # TrueClass :processed_tree
-      # TrueClass :taken_links
-      # TrueClass :is_file
-      # TrueClass :file_saved
       foreign_key :parent_id, :page
     end
   end
