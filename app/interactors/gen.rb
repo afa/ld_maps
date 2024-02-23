@@ -32,6 +32,9 @@ class Gen < BaseInteractor
     yield startup(App.config.fetch(:maps_url))
     pages = yield load_init_pages
     yield scan_links_from(pages)
+    sources = yield load_scaned_pages
+    yield scan_files_from(sources)
+
     pp Page.dataset.state_init.count,
        Page.dataset.state_scaned.count,
        Page.dataset.state_checked.count,
@@ -46,12 +49,20 @@ class Gen < BaseInteractor
       .or { Maybe(Page.create(url:, state: :init)) }
   end
 
-  def load_init_pages
-    List(Page.dataset.state_init.limit(100).to_a)
+  def load_pages(&blk)
+    List(Page.dataset.yield_self { |set| blk.call(set) }.limit(100).to_a)
       .fmap { |x| Maybe(x) }
       .typed(Maybe)
       .traverse
       .to_result
+  end
+
+  def load_init_pages
+    load_pages(&:state_init)
+  end
+
+  def load_scaned_pages
+    load_pages(&:state_scaned)
   end
 
   def scan_links_from(pages)
@@ -82,6 +93,10 @@ class Gen < BaseInteractor
     List(
       list.map { |url, _opts| Try { Page.create(parent_id: page.pk, url:) } }
     ).typed(Try).traverse
+  end
+
+  def scan_files_from(pages)
+
   end
 
   def fetch_url(url)
