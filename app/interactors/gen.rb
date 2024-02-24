@@ -96,6 +96,11 @@ class Gen < BaseInteractor
   end
 
   def scan_files_from(pages)
+    pages.bind { |page|
+    }
+      .typed(Try)
+      .traverse
+
 
   end
 
