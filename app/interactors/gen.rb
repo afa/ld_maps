@@ -19,6 +19,11 @@ class Gen < BaseInteractor
     /^http:\/\/satmaps\.info\/map\.php\?s=/ => { lvl: 4 }
   }.freeze
 
+  FILE_LINKS_REGEXPS = {
+    /download-map.php/ => :img,
+    /download-ref.php/ => :map
+  }.freeze
+
   def call
     @links = Struct.new(:map, :image).new([], [])
     # @logger = Dry.Logger(:genstab)
@@ -33,6 +38,7 @@ class Gen < BaseInteractor
     pages = yield load_init_pages
     yield scan_links_from(pages)
     sources = yield load_scaned_pages
+    pp sources
     yield scan_files_from(sources)
 
     pp Page.dataset.state_init.count,
@@ -97,6 +103,8 @@ class Gen < BaseInteractor
 
   def scan_files_from(pages)
     pages.bind { |page|
+      mech = yield fetch_url(page.url)
+      list = yield parse_file_links(mech)
     }
       .typed(Try)
       .traverse
@@ -104,8 +112,20 @@ class Gen < BaseInteractor
 
   end
 
+  def parse_file_links(mech)
+    # list.bind { |item| extract_links(item, /download-map.php/) }.bind { |mech| [load_single_gif(mech)] }
+    # list.bind { |item| extract_links(item, /download-ref.php/) }.bind { |mech| [load_single_map(mech)] }
+    Try {
+      FILE_LINKS_REGEXPS.each_with_object({}) { |(regexp, kind), data|
+      }
+    }
+  end
+
   def fetch_url(url)
     10.times do |attempt|
+      # try_get(url)
+      #   .bind { |rsp| print '.'; return Success(rsp) }
+      #   .or { puts "retry ##{attempt}"; sleep(rand(10)) }
       try_get(url)
         .bind { |rsp| print '.'; return Success(rsp) }
         .or { puts "retry ##{attempt}"; sleep(rand(10)) }
@@ -117,10 +137,10 @@ class Gen < BaseInteractor
   end
 
   # -----------------
-  def load_links(list)
-    list.bind { |item| extract_links(item, /download-map.php/) }.bind { |mech| [load_single_gif(mech)] }
-    list.bind { |item| extract_links(item, /download-ref.php/) }.bind { |mech| [load_single_map(mech)] }
-  end
+  # def load_links(list)
+  #   list.bind { |item| extract_links(item, /download-map.php/) }.bind { |mech| [load_single_gif(mech)] }
+  #   list.bind { |item| extract_links(item, /download-ref.php/) }.bind { |mech| [load_single_map(mech)] }
+  # end
 
   def load_single_gif(m_lnk)
     hsh = m_lnk.uri.query.split('&').map{|s| s.split('=') }.inject({}){|r, i| r.merge Hash[*i] }
