@@ -38,7 +38,6 @@ class Gen < BaseInteractor
     pages = yield load_init_pages
     yield scan_links_from(pages)
     sources = yield load_scaned_pages
-    pp sources
     yield scan_files_from(sources)
 
     pp Page.dataset.state_init.count,
@@ -116,8 +115,11 @@ class Gen < BaseInteractor
     # list.bind { |item| extract_links(item, /download-map.php/) }.bind { |mech| [load_single_gif(mech)] }
     # list.bind { |item| extract_links(item, /download-ref.php/) }.bind { |mech| [load_single_map(mech)] }
     Try {
-      FILE_LINKS_REGEXPS.each_with_object({}) { |(regexp, kind), data|
-      }
+      FILE_LINKS_REGEXPS.each_with_object({}) do |(regexp, kind), data|
+        mech.links_with(href: regexp).each do |link|
+          data.merge!(link.resolved_uri.to_s => { kind:, text: link.text })
+        end
+      end
     }
   end
 
