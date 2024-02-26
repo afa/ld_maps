@@ -35,10 +35,8 @@ class Gen < BaseInteractor
 
   def ld_map_gen
     yield startup(App.config.fetch(:maps_url))
-    pages = yield load_init_pages
-    yield scan_links_from(pages)
-    sources = yield load_scaned_pages
-    yield scan_files_from(sources)
+    yield load_init_pages.bind { |pages| scan_links_from(pages) }
+    yield load_scaned_pages.bind { |pages| scan_files_from(pages) }
 
     pp Page.dataset.state_init.count,
        Page.dataset.state_scaned.count,
@@ -67,6 +65,10 @@ class Gen < BaseInteractor
 
   def load_scaned_pages
     load_pages(&:state_scaned)
+  end
+
+  def load_checked_pages
+    load_pages(&:state_checked)
   end
 
   def scan_links_from(pages)
@@ -101,8 +103,7 @@ class Gen < BaseInteractor
 
   def scan_files_from(pages)
     pages.bind { |page|
-      mech = yield fetch_url(page.url)
-      list = yield parse_file_links(mech)
+      list = yield fetch_url(page.url).bind { |mech| parse_file_links(mech) }
       yield build_file_links(page, list)
       page.files = list
       page.state_checked!
@@ -135,6 +136,7 @@ class Gen < BaseInteractor
         .bind { |rsp| print '.'; return Success(rsp) }
         .or { puts "retry ##{attempt}"; sleep(rand(10)) }
     end
+    Failure("url #{url} load error")
   end
 
   def try_get(url)
