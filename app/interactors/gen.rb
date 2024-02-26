@@ -37,6 +37,7 @@ class Gen < BaseInteractor
     yield startup(App.config.fetch(:maps_url))
     yield load_init_pages.bind { |pages| scan_links_from(pages) }
     yield load_scaned_pages.bind { |pages| scan_files_from(pages) }
+    # yield load_waiting_pages.bind { |pages| save_files_from(pages) }
 
     pp Page.dataset.state_init.count,
        Page.dataset.state_scaned.count,
@@ -52,7 +53,7 @@ class Gen < BaseInteractor
   end
 
   def load_pages(&blk)
-    List(Page.dataset.yield_self { |set| blk.call(set) }.limit(100).to_a)
+    List(Page.dataset.yield_self { |set| blk.call(set) }.limit(1000).to_a)
       .fmap { |x| Maybe(x) }
       .typed(Maybe)
       .traverse
@@ -67,14 +68,17 @@ class Gen < BaseInteractor
     load_pages(&:state_scaned)
   end
 
+  def load_waiting_pages
+    load_pages(&:state_waiting)
+  end
+
   def load_checked_pages
     load_pages(&:state_checked)
   end
 
   def scan_links_from(pages)
     pages.bind { |page|
-      mech = yield fetch_url(page.url)
-      list = yield parse_page_links(mech)
+      list = yield fetch_url(page.url).bind { |mech| parse_page_links(mech) }
       yield build_page_links(page, list)
       page.links = list
       page.state_scaned!
@@ -127,6 +131,11 @@ class Gen < BaseInteractor
           data.merge!(link.resolved_uri.to_s => { kind:, text: link.text })
         end
       end
+    }
+  end
+
+  def save_file_from(pages)
+    pages.bind { |page|
     }
   end
 
