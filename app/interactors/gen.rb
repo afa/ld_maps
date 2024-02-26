@@ -5,6 +5,7 @@ require 'mechanize'
 # для отсканированной страницы установить статус сканед
 # найти страницы сканед, проверить наличие ссылок на файлы, создать для файлов страницы, установть статус в чекед
 # найти чекед, проверить наличие файла если нет статус в доне, если удалось сохранить в савед
+# rubocop:disable Metrics/ClassLength
 class Gen < BaseInteractor
   option :path
   option :skip_templates, default: -> { %w[] }
@@ -19,11 +20,15 @@ class Gen < BaseInteractor
     /^http:\/\/satmaps\.info\/map\.php\?s=/ => { lvl: 4 }
   }.freeze
 
+  FILE_LINKS_REGEXPS = {
+    /download-map.php/ => :img,
+    /download-ref.php/ => :map
+  }.freeze
+
   def call
     @links = Struct.new(:map, :image).new([], [])
     # @logger = Dry.Logger(:genstab)
     ld_map_gen
-    # ld_map_ggc(250, %w[]).to_result
   end
 
   private
@@ -32,13 +37,15 @@ class Gen < BaseInteractor
     yield startup(App.config.fetch(:maps_url))
     pages = yield load_init_pages
     yield scan_links_from(pages)
+    sources = yield load_scaned_pages
+    yield scan_files_from(sources)
+
     pp Page.dataset.state_init.count,
        Page.dataset.state_scaned.count,
        Page.dataset.state_checked.count,
-       Page.dataset.state_saved.count
-    # initpage = load_init
-    # list = collect_links(initpage)
-    # load_links(list)
+       Page.dataset.state_saved.count,
+       Page.dataset.state_waiting.count,
+       Page.dataset.state_validating.count
   end
 
   def startup(url)
@@ -46,26 +53,34 @@ class Gen < BaseInteractor
       .or { Maybe(Page.create(url:, state: :init)) }
   end
 
-  def load_init_pages
-    List(Page.dataset.state_init.limit(100).to_a)
+  def load_pages(&blk)
+    List(Page.dataset.yield_self { |set| blk.call(set) }.limit(100).to_a)
       .fmap { |x| Maybe(x) }
       .typed(Maybe)
       .traverse
       .to_result
   end
 
+  def load_init_pages
+    load_pages(&:state_init)
+  end
+
+  def load_scaned_pages
+    load_pages(&:state_scaned)
+  end
+
   def scan_links_from(pages)
-      pages.bind { |page|
-        mech = yield fetch_url(page.url)
-        list = yield parse_page_links(mech)
-        yield build_page_links(page, list)
-        page.links = list
-        page.state_scaned!
-        page.save_changes
-        [Success(page)]
-      }
-        .typed(Try)
-        .traverse
+    pages.bind { |page|
+      mech = yield fetch_url(page.url)
+      list = yield parse_page_links(mech)
+      yield build_page_links(page, list)
+      page.links = list
+      page.state_scaned!
+      page.save_changes
+      [Success(page)]
+    }
+      .typed(Try)
+      .traverse
   end
 
   def parse_page_links(mech)
@@ -84,6 +99,36 @@ class Gen < BaseInteractor
     ).typed(Try).traverse
   end
 
+  def scan_files_from(pages)
+    pages.bind { |page|
+      mech = yield fetch_url(page.url)
+      list = yield parse_file_links(mech)
+      yield build_file_links(page, list)
+      page.files = list
+      page.state_checked!
+      page.save_changes
+      [Success(page)]
+    }
+      .typed(Try)
+      .traverse
+  end
+
+  def build_file_links(page, list)
+    List(
+      list.map { |url, opts| Try { Page.create(parent_id: page.pk, url:, state: :waiting, files: opts) } }
+    ).typed(Try).traverse
+  end
+
+  def parse_file_links(mech)
+    Try {
+      FILE_LINKS_REGEXPS.each_with_object({}) do |(regexp, kind), data|
+        mech.links_with(href: regexp).each do |link|
+          data.merge!(link.resolved_uri.to_s => { kind:, text: link.text })
+        end
+      end
+    }
+  end
+
   def fetch_url(url)
     10.times do |attempt|
       try_get(url)
@@ -97,10 +142,10 @@ class Gen < BaseInteractor
   end
 
   # -----------------
-  def load_links(list)
-    list.bind { |item| extract_links(item, /download-map.php/) }.bind { |mech| [load_single_gif(mech)] }
-    list.bind { |item| extract_links(item, /download-ref.php/) }.bind { |mech| [load_single_map(mech)] }
-  end
+  # def load_links(list)
+  #   list.bind { |item| extract_links(item, /download-map.php/) }.bind { |mech| [load_single_gif(mech)] }
+  #   list.bind { |item| extract_links(item, /download-ref.php/) }.bind { |mech| [load_single_map(mech)] }
+  # end
 
   def load_single_gif(m_lnk)
     hsh = m_lnk.uri.query.split('&').map{|s| s.split('=') }.inject({}){|r, i| r.merge Hash[*i] }
@@ -131,7 +176,7 @@ class Gen < BaseInteractor
 
   # def ld_map_ggc(sz)
   #   Try {
-      
+
   #     initpage = yield load_init("http://satmaps.info/map#{sz}.php")
   #     pp initpage
   #     initpage.links_with(href: /map#{sz}w\.php/).tap{|x|pp x}.each do |lnk1|
@@ -160,3 +205,4 @@ class Gen < BaseInteractor
   #   }
   # end
 end
+# rubocop:enable Metrics/ClassLength
