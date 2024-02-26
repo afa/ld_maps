@@ -41,9 +41,11 @@ class Gen < BaseInteractor
     yield scan_files_from(sources)
 
     pp Page.dataset.state_init.count,
-       Page.dataset.state_scaned.count,
-       Page.dataset.state_checked.count,
-       Page.dataset.state_saved.count
+      Page.dataset.state_scaned.count,
+      Page.dataset.state_checked.count,
+      Page.dataset.state_saved.count,
+      Page.dataset.state_waiting.count,
+      Page.dataset.state_validating.count
     # initpage = load_init
     # list = collect_links(initpage)
     # load_links(list)
@@ -71,17 +73,17 @@ class Gen < BaseInteractor
   end
 
   def scan_links_from(pages)
-      pages.bind { |page|
-        mech = yield fetch_url(page.url)
-        list = yield parse_page_links(mech)
-        yield build_page_links(page, list)
-        page.links = list
-        page.state_scaned!
-        page.save_changes
-        [Success(page)]
-      }
-        .typed(Try)
-        .traverse
+    pages.bind { |page|
+      mech = yield fetch_url(page.url)
+      list = yield parse_page_links(mech)
+      yield build_page_links(page, list)
+      page.links = list
+      page.state_scaned!
+      page.save_changes
+      [Success(page)]
+    }
+      .typed(Try)
+      .traverse
   end
 
   def parse_page_links(mech)
@@ -104,12 +106,22 @@ class Gen < BaseInteractor
     pages.bind { |page|
       mech = yield fetch_url(page.url)
       list = yield parse_file_links(mech)
+      yield build_file_links(page, list)
+      page.files = list
+      page.state_checked!
+      page.save_changes
+      [Success(page)]
     }
       .typed(Try)
       .traverse
-
-
   end
+
+  def build_file_links(page, list)
+    List(
+      list.map { |url, opts| Try { Page.create(parent_id: page.pk, url:, state: :waiting, files: opts) } }
+    ).typed(Try).traverse
+  end
+
 
   def parse_file_links(mech)
     # list.bind { |item| extract_links(item, /download-map.php/) }.bind { |mech| [load_single_gif(mech)] }
@@ -173,7 +185,7 @@ class Gen < BaseInteractor
 
   # def ld_map_ggc(sz)
   #   Try {
-      
+
   #     initpage = yield load_init("http://satmaps.info/map#{sz}.php")
   #     pp initpage
   #     initpage.links_with(href: /map#{sz}w\.php/).tap{|x|pp x}.each do |lnk1|
