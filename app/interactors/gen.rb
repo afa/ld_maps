@@ -5,28 +5,17 @@ require 'mechanize'
 # для отсканированной страницы установить статус сканед
 # найти страницы сканед, проверить наличие ссылок на файлы, создать для файлов страницы, установть статус в чекед
 # найти чекед, проверить наличие файла если нет статус в доне, если удалось сохранить в савед
-# rubocop:disable Metrics/ClassLength
 class Gen < BaseInteractor
   option :path
   option :skip_templates, default: -> { %w[] }
   option :session, default: -> { Mechanize.new }
 
-  attr_reader :session, :links, :logger
-
-  LINKS_REGEXPS = {
-    /^genshtab.php\?l=[a-z]{1,2}$/ => { lvl: 1 },
-    /^genshtab.php\?sq=[0-9a-z]{2,4}/ => { lvl: 2 },
-    /^genshtab.php\?lst=[a-z0-9_]{4,}/ => { lvl: 3 },
-    /^http:\/\/satmaps\.info\/map\.php\?s=/ => { lvl: 4 }
-  }.freeze
-
-  FILE_LINKS_REGEXPS = {
-    /download-map.php/ => :img,
-    /download-ref.php/ => :map
-  }.freeze
+  attr_reader :logger
 
   def call
-    @links = Struct.new(:map, :image).new([], [])
+    session.verify_mode = 0 # fix after certification repaired
+
+    # @links = Struct.new(:map, :image).new([], [])
     # @logger = Dry.Logger(:genstab)
     ld_map_gen
   end
@@ -34,10 +23,10 @@ class Gen < BaseInteractor
   private
 
   def ld_map_gen
-    yield startup(App.config.fetch(:maps_url))
-    yield load_init_pages.bind { |pages| scan_links_from(pages) }
-    yield load_scaned_pages.bind { |pages| scan_files_from(pages) }
-    # yield load_waiting_pages.bind { |pages| save_files_from(pages) }
+    yield SatMaps::PrepareStartupPages.call(App.config.fetch(:maps_url))
+    yield SatMaps::ProcessInitPages.call(session:)
+    yield SatMaps::ProcessScanedPages.call(session:)
+    yield load_waiting_pages.bind { |pages| save_files_from(pages) }
 
     pp Page.dataset.state_init.count,
        Page.dataset.state_scaned.count,
@@ -47,109 +36,54 @@ class Gen < BaseInteractor
        Page.dataset.state_validating.count
   end
 
-  def startup(url)
-    Maybe(Page.where(url:).first)
-      .or { Maybe(Page.create(url:, state: :init)) }
-  end
-
-  def load_pages(&blk)
-    List(Page.dataset.yield_self { |set| blk.call(set) }.limit(1000).to_a)
-      .fmap { |x| Maybe(x) }
-      .typed(Maybe)
-      .traverse
-      .to_result
-  end
-
-  def load_init_pages
-    load_pages(&:state_init)
-  end
-
-  def load_scaned_pages
-    load_pages(&:state_scaned)
-  end
-
   def load_waiting_pages
-    load_pages(&:state_waiting)
+    SatMaps::LoadPages.call(&:state_waiting)
   end
 
   def load_checked_pages
-    load_pages(&:state_checked)
+    SatMaps::LoadPages.call(&:state_checked)
   end
 
-  def scan_links_from(pages)
-    pages.bind { |page|
-      list = yield fetch_url(page.url).bind { |mech| parse_page_links(mech) }
-      yield build_page_links(page, list)
-      page.links = list
-      page.state_scaned!
-      page.save_changes
-      [Success(page)]
-    }
-      .typed(Try)
-      .traverse
-  end
-
-  def parse_page_links(mech)
-    Try {
-      LINKS_REGEXPS.each_with_object({}) do |(regexp, opts), data|
-        mech.links_with(href: regexp).each do |link|
-          data.merge!(link.resolved_uri.to_s => { lvl: opts[:lvl], text: link.text })
-        end
-      end
-    }
-  end
-
-  def build_page_links(page, list)
-    List(
-      list.map { |url, _opts| Try { Page.create(parent_id: page.pk, url:) } }
-    ).typed(Try).traverse
-  end
-
-  def scan_files_from(pages)
-    pages.bind { |page|
-      list = yield fetch_url(page.url).bind { |mech| parse_file_links(mech) }
-      yield build_file_links(page, list)
-      page.files = list
-      page.state_checked!
-      page.save_changes
-      [Success(page)]
-    }
-      .typed(Try)
-      .traverse
-  end
-
-  def build_file_links(page, list)
-    List(
-      list.map { |url, opts| Try { Page.create(parent_id: page.pk, url:, state: :waiting, files: opts) } }
-    ).typed(Try).traverse
-  end
-
-  def parse_file_links(mech)
-    Try {
-      FILE_LINKS_REGEXPS.each_with_object({}) do |(regexp, kind), data|
-        mech.links_with(href: regexp).each do |link|
-          data.merge!(link.resolved_uri.to_s => { kind:, text: link.text })
-        end
-      end
-    }
-  end
-
-  def save_file_from(pages)
-    pages.bind { |page|
-    }
-  end
-
-  def fetch_url(url)
-    10.times do |attempt|
-      try_get(url)
-        .bind { |rsp| print '.'; return Success(rsp) }
-        .or { puts "retry ##{attempt}"; sleep(rand(10)) }
+  def save_files_from(pages)
+    pages.bind do |page|
+      resp = yield SatMaps::FetchUrl.call(page.url, session:)
+      yield build_name(resp)
+        .bind { |name, _calc_name|
+          yield store_file(resp, name)
+          [
+            Success(SatMaps::SavePageWithState.call(page, :state_validating!) { |p| p.filename = name })
+          ]
+        }
+        .or { Success([]) }
     end
-    Failure("url #{url} load error")
+      .typed(Try)
+      .traverse
   end
 
-  def try_get(url)
-    Try { session.get(url) }.to_result
+  def build_name(resp)
+    Try {
+      extracted_name = resp.extract_filename
+      hsh = resp.uri.query.split('&').map{|s| s.split('=') }.inject({}){|r, i| r.merge Hash[*i] }
+      pp extracted_name, hsh
+      yield validate_names(extracted_name, name_from_hash(hsh))
+      "#{hsh['s']}-#{hsh['map']}.gif"
+    }
+    # pp "#{hsh['s']}-#{hsh['map']}.gif"
+    # pp resp.uri.to_s
+    # pp resp.body.size, resp.code, resp.each.map{|k, v| "#{k}: #{v}"}
+  end
+
+  def validate_names(extracted, generated)
+    pp extracted
+    return Failure(:too_many) if extracted == 'too_many.gif'
+    Success()
+  end
+
+  def name_from_hash(hash)
+    "#{hash['s']}-#{hash['map']}.gif"
+  end
+
+  def store_file(resp, name)
   end
 
   # -----------------
@@ -216,4 +150,3 @@ class Gen < BaseInteractor
   #   }
   # end
 end
-# rubocop:enable Metrics/ClassLength
