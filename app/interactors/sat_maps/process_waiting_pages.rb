@@ -15,6 +15,7 @@ module SatMaps
       pages.bind do |page|
         resp = yield SatMaps::FetchUrl.call(page.url, session:)
         names = yield extract_names(resp)
+        pp names
         yield store_temporary(names[:filename], resp)
         SatMaps::SavePageWithState
           .call(page, :state_validating!) { |p| p.set_fields(names, %i[filename query_filename request_filename]) }
@@ -30,6 +31,23 @@ module SatMaps
       end
         .typed(Try)
         .traverse
+    end
+
+    def store_temporary(filename, mech)
+      Try {
+        name = File.join(App.config[:temporary_path], filename)
+        mech.save(name)
+      }
+    end
+
+    def extract_names(mech)
+      Try {
+        {
+          filename: SecureRandom.hex(8),
+          query_filename: mech.uri.query.split('&').map{|x|x.split('=')}.to_h.then { |h| "#{h['s']}-#{h['map']}.gif" },
+          request_filename: mech.extract_filename
+        }
+      }
     end
 
     def build_name(resp)
@@ -49,9 +67,6 @@ module SatMaps
       pp :extr, extracted
       return Failure(:too_many) if extracted == 'too_many.gif'
       Success()
-    end
-
-    def store_file(resp, name)
     end
 
     def name_from_hash(hash)
