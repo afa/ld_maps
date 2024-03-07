@@ -10,24 +10,11 @@ module SatMaps
             print '.'
             return Success(rsp)
           end
-            .or do
+            .or do |f|
               puts "retry ##{attempt}"
+              pp f
               sleep(rand(10))
             end
-        # try_get do |m|
-        #   m.success do |rsp|
-        #     pp m
-        #     print '.'
-        #     return Success(rsp)
-        #   end
-        #   m.failure do |er|
-        #     pp m
-        #     pp er
-        #     puts "retry ##{attempt}"
-
-        #     sleep(rand(10))
-        #   end
-        # end
       end
       Failure("url #{url} load error")
     end

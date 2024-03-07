@@ -8,7 +8,7 @@ module SatMaps
     }.freeze
 
     def call
-      yield load_scaned_pages.bind { |pages| scan_files_from(pages) }
+      load_scaned_pages.bind { |pages| scan_files_from(pages) }
     end
 
     def load_scaned_pages
@@ -30,7 +30,9 @@ module SatMaps
     def build_file_links(page, list)
       List(
         list.map { |url, opts| Try { Page.create(parent_id: page.pk, url:, state: :waiting, files: opts) } }
-      ).typed(Try).traverse
+      )
+        .typed(Try)
+        .traverse
     end
 
     def parse_file_links(mech)
