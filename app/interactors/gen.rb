@@ -23,27 +23,27 @@ class Gen < BaseInteractor
   private
 
   def ld_map_gen
-    # yield SatMaps::PrepareStartupPages.call(App.config.fetch(:maps_url))
-    # puts 'startup'
-    # yield SatMaps::ProcessInitPages.call(session:)
-    # puts 'init'
-    # yield SatMaps::ProcessScanedPages.call(session:)
+    yield SatMaps::PrepareStartupPages.call(App.config.fetch(:maps_url))
+    puts 'startup'
+    yield SatMaps::ProcessInitPages.call(session:)
+    puts 'init'
+    yield SatMaps::ProcessScanedPages.call(session:)
     puts 'scan'
     yield SatMaps::ProcessWaitingPages.call(session:)
     puts 'wait'
 
-    pp Page.dataset.state_init.count,
-       Page.dataset.state_scaned.count,
-       Page.dataset.state_checked.count,
-       Page.dataset.state_saved.count,
-       Page.dataset.state_waiting.count,
-       Page.dataset.state_validating.count
+    pp(
+      Page
+      .select{[state, count(state)]}
+      .group(:state)
+      .sort_by { |p| p.values[:state] }
+      .each { |p| puts "#{p.state}: #{p.values[:count]}" }
+    )
   end
 
   def load_checked_pages
     SatMaps::LoadPages.call(&:state_checked)
   end
-
 
   # -----------------
   # def load_links(list)

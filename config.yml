@@ -1,3 +1,4 @@
 ---
 db: 'postgres:///load_map'
 maps_url: "https://satmaps.info/genshtab.php"
+temporary_path: 'data/temp'

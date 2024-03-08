@@ -6,17 +6,19 @@ module SatMaps
     def call
       10.times do |attempt|
         try_get
-          .bind do |rsp|
-            print '.'
-            return Success(rsp)
+          .bind { |rsp| return point_and_return(Success(rsp)) }
+          .or do |f|
+            puts "retry ##{attempt}"
+            pp f
+            sleep(rand(10))
           end
-            .or do |f|
-              puts "retry ##{attempt}"
-              pp f
-              sleep(rand(10))
-            end
       end
       Failure("url #{url} load error")
+    end
+
+    def point_and_return(val)
+      print '.'
+      val
     end
 
     def try_get
