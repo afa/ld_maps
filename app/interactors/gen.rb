@@ -31,6 +31,8 @@ class Gen < BaseInteractor
     puts 'scan'
     yield SatMaps::ProcessWaitingPages.call(session:)
     puts 'wait'
+    yield SatMaps::ProcessValidatingPages.call(session:)
+    puts 'validating'
 
     pp(
       Page
