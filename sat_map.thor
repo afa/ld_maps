@@ -10,7 +10,7 @@ class SatMap < Thor
   desc 'clean', 'remove data and pages'
   def clean
     # Page.dataset.trunc
-    FileUtils.rm_f(Dir.glob(File.join(App.config[:temporary_path], '*')))
+    # FileUtils.rm_f(Dir.glob(File.join(App.config[:temporary_path], '*')))
   end
 end
 

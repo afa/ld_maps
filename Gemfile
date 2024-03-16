@@ -18,6 +18,7 @@ group :test, :development do
   gem 'rubocop'
   gem 'rubocop-sequel'
   gem 'rubocop-rspec'
+  gem 'reek'
 #   gem 'rspec-rails'
 #   gem 'factory_girl_rails'
 end

@@ -40,6 +40,7 @@ module SatMaps
         return Failure(:no_such_file, file) unless File.exist?(file(page))
 
         # rubocop:disable Style/ZeroLengthPredicate
+        # erro in cop detection for file ststs .size method
         return Failure(:zero_file_size) if File.new(file(page)).stat.size.zero?
         # rubocop:enable Style/ZeroLengthPredicate
 
@@ -57,12 +58,26 @@ module SatMaps
         .bind { Failure(:next_page) }
     end
 
-    def validate_names(_page)
-      # do nothing
+    def validate_names(page)
+      Try {
+        qname = SatMaps::ParseMapName.call(page.query_filename)
+        rname = SatMaps::ParseMapName.call(page.request_filename)
+        yield compare_names(qname, rname)
+      }.to_result
+    end
+
+    def compare_names(qname, rname)
+      return Failure(:has_tail) unless qname.tail.empty?
+
+      return Failure(:has_tail) unless rname.tail.empty?
+
+      return Failure(:mismatch) unless qname == rname
+
       Success()
     end
 
     def forward(_page)
+      # temporally do nothing
       Success()
     end
 
@@ -72,7 +87,6 @@ module SatMaps
         SatMaps::SavePageWithState.call(page, :state_invalid_name!)
       }
         .bind { Failure(:next_page) }
-      Success()
     end
 
     def file(page)
