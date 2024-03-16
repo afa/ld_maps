@@ -49,7 +49,7 @@ module SatMaps
     end
 
     def parse_query(str)
-      str.split('&').map { |x| x.split('=') }.to_h.then { |h| "#{h['s']}-#{h['map']}.gif" }
+      str.split('&').to_h { |x| x.split('=') }.then { |h| "#{h['s']}-#{h['map']}.gif" }
     end
 
     def print_fail
