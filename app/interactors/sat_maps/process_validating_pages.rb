@@ -37,9 +37,11 @@ module SatMaps
 
     def validate_file_size(page)
       Try {
-        return Failure(:no_such_file, file) unless File.exists?(file(page))
+        return Failure(:no_such_file, file) unless File.exist?(file(page))
 
+        # rubocop:disable Style/ZeroLengthPredicate
         return Failure(:zero_file_size) if File.new(file(page)).stat.size.zero?
+        # rubocop:enable Style/ZeroLengthPredicate
 
         print '.'
         Success()
@@ -50,21 +52,26 @@ module SatMaps
       Try {
         print 'F'
         FileUtils.rm_f(file(page))
-        SatMaps::SavePageWithState.call(page, :state_waiting!) {  }
+        SatMaps::SavePageWithState.call(page, :state_waiting!) {}
       }
         .bind { Failure(:next_page) }
     end
 
-    def validate_names(page)
+    def validate_names(_page)
       # do nothing
       Success()
     end
 
-    def forward(page)
+    def forward(_page)
       Success()
     end
 
     def to_invalid_names(page)
+      Try {
+        print 'F'
+        SatMaps::SavePageWithState.call(page, :state_invalid_name!) {}
+      }
+        .bind { Failure(:next_page) }
       Success()
     end
 
@@ -73,4 +80,3 @@ module SatMaps
     end
   end
 end
-

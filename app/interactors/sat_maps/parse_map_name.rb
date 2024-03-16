@@ -2,9 +2,7 @@ module SatMaps
   class ParseMapName < BaseInteractor
     param :name
 
-    attr_reader :hash
-
-    SIZES = %[001m 500k 200k 100k].freeze
+    SIZES = %(001m 500k 200k 100k).freeze
     def call
       pp name
       yield split
@@ -42,9 +40,9 @@ module SatMaps
             .head
             .fmap { |s| parse_row(s) }
         }
-          .fmap { |s| hash[:row] = s }
-          .or { List([]) }
-          .bind { list.tail }
+        .fmap { |s| hash[:row] = s }
+        .or { List([]) }
+        .bind { list.tail }
     end
 
     def extract_column(list)
@@ -52,7 +50,7 @@ module SatMaps
         .head
         .fmap { |s| hash.merge!(parse_column(s)) }
         .or { List([]) }
-        .bind { |s| list.tail }
+        .bind { |_| list.tail }
     end
 
     def extract_kvadrat(list)
@@ -60,12 +58,12 @@ module SatMaps
         .head
         .fmap { |s| hash.merge!(parse_kvadrat(s)) }
         .or { List([]) }
-        .bind { |s| list.tail}
+        .bind { |_| list.tail }
     end
 
     def extract_tail(list)
       Maybe(list.value)
-        .fmap { |s| hash.merge!(tail: list.value.map { |i| i.nil? ? '' : i }) }
+        .fmap { |_| hash.merge!(tail: list.value.map { |i| i.nil? ? '' : i }) }
     end
 
     def parse_row(str)

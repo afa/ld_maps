@@ -23,7 +23,8 @@ module SatMaps
                 p.set_fields(names, %i[filename query_filename request_filename])
               end
             )
-          end.or { print 'F'; nil }
+          end
+            .or { print_fail }
         ].compact
       end
         .typed(Try)
@@ -41,33 +42,19 @@ module SatMaps
       Try {
         {
           filename: SecureRandom.hex(8),
-          query_filename: mech.uri.query.split('&').map { |x| x.split('=') }.to_h.then { |h| "#{h['s']}-#{h['map']}.gif" },
+          query_filename: parse_query(mech.uri.query),
           request_filename: mech.extract_filename
         }
       }
     end
 
-    # def build_name(resp)
-    #   Try {
-    #     extracted_name = resp.extract_filename
-    #     hsh = resp.uri.query.split('&').map{|s| s.split('=') }.inject({}){|r, i| r.merge Hash[*i] }
-    #     pp :exname, extracted_name, :hsh, hsh
-    #     yield validate_names(extracted_name, name_from_hash(hsh))
-    #     "#{hsh['s']}-#{hsh['map']}.gif"
-    #   }
-    #   # pp "#{hsh['s']}-#{hsh['map']}.gif"
-    #   # pp resp.uri.to_s
-    #   # pp resp.body.size, resp.code, resp.each.map{|k, v| "#{k}: #{v}"}
-    # end
+    def parse_query(str)
+      str.split('&').map { |x| x.split('=') }.to_h.then { |h| "#{h['s']}-#{h['map']}.gif" }
+    end
 
-    # def validate_names(extracted, generated)
-    #   pp :extr, extracted
-    #   return Failure(:too_many) if extracted == 'too_many.gif'
-    #   Success()
-    # end
-
-    # def name_from_hash(hash)
-    #   "#{hash['s']}-#{hash['map']}.gif"
-    # end
+    def print_fail
+      print 'F'
+      nil
+    end
   end
 end
