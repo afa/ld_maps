@@ -7,7 +7,7 @@ module SatMaps
     end
 
     def load_validating_pages
-      SatMaps::LoadPages.call(&:state_validating)
+      SatMaps::LoadPages.call(count: 10_000, &:state_validating)
     end
 
     def validate_names_for(pages)

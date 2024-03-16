@@ -95,7 +95,8 @@ class Gen < BaseInteractor
   #           # p lnk3
   #           page3 = yield do_retry{ lnk3.click }
   #           page3.links_with(href: /show-map-#{sz}\.php/).each do |lnkmap|
-  #             next if skip_templates.size > 0 && lnkmap.uri.to_s.split('?').last =~ /id_map=(#{ skip_templates.join('|') }).*/
+  #             next if skip_templates.size > 0
+  #             && lnkmap.uri.to_s.split('?').last =~ /id_map=(#{ skip_templates.join('|') }).*/
   #             puts lnkmap.uri.to_s.split('?').last
   #             map = yield do_retry{ lnkmap.click }
   #             map.links_with(href: /download-map\.php/).each do |m_lnk|
