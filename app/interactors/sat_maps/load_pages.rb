@@ -6,7 +6,7 @@ module SatMaps
       List(
         Page
         .dataset
-        .then { |set| blk.call(set) }
+        .then { |set| block_given? ? blk.call(set) : set }
         .select(Sequel.lit('*'), Sequel.function(:random).as(:rand))
         .order(:rand)
         .limit(count)

@@ -52,7 +52,7 @@ module SatMaps
       Try {
         print 'F'
         FileUtils.rm_f(file(page))
-        SatMaps::SavePageWithState.call(page, :state_waiting!) {}
+        SatMaps::SavePageWithState.call(page, :state_waiting!)
       }
         .bind { Failure(:next_page) }
     end
@@ -69,7 +69,7 @@ module SatMaps
     def to_invalid_names(page)
       Try {
         print 'F'
-        SatMaps::SavePageWithState.call(page, :state_invalid_name!) {}
+        SatMaps::SavePageWithState.call(page, :state_invalid_name!)
       }
         .bind { Failure(:next_page) }
       Success()
