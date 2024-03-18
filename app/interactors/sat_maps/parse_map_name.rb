@@ -4,7 +4,6 @@ module SatMaps
 
     SIZES = %(001m 500k 200k 100k).freeze
     def call
-      pp name
       yield split
         .fmap { |list| extract_size(list) }
         .fmap { |list| extract_row(list) }
@@ -13,7 +12,6 @@ module SatMaps
         .fmap { |list| extract_tail(list) }
         .or { |f| pp hash, f }
 
-      pp hash
       MapNameStruct.new(hash)
     end
 

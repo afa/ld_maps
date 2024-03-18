@@ -16,8 +16,10 @@ module SatMaps
         Try {
           yield validate_invalid_name(page).or { back_to_reload(page) }
           yield validate_file_size(page).or { back_to_reload(page) }
-          yield validate_names(page).bind { forward(page) }.or { to_invalid_names(page) }
+          yield validate_names(page).or { to_invalid_names(page) }
         }
+          .to_result
+          .bind { forward(page) }
         [
           Success(page)
         ]
@@ -30,7 +32,6 @@ module SatMaps
       Try {
         return Failure(:file_too_many_response) if page.request_filename == 'too-many.gif'
 
-        print '.'
         Success()
       }.to_result
     end
@@ -59,33 +60,39 @@ module SatMaps
     end
 
     def validate_names(page)
+      print '.'
       Try {
-        qname = SatMaps::ParseMapName.call(page.query_filename)
-        rname = SatMaps::ParseMapName.call(page.request_filename)
-        yield compare_names(qname, rname)
-      }.to_result
+        qname =  SatMaps::ParseMapName.call(page.query_filename)
+        rname =  SatMaps::ParseMapName.call(page.request_filename)
+        compare_names(qname, rname)
+      }
+        .to_result
     end
 
     def compare_names(qname, rname)
-      return Failure(:has_tail) unless qname.tail.empty?
+      return Failure([:has_tail, qname.tail]) unless qname.tail.empty?
 
-      return Failure(:has_tail) unless rname.tail.empty?
+      return Failure([:has_tail, rname.tail]) unless rname.tail.empty?
 
       return Failure(:mismatch) unless qname == rname
 
-      Success()
+      Success(:compared)
     end
 
-    def forward(_page)
-      # temporally do nothing
-      Success()
+    def forward(page)
+      print '+'
+      Try {
+        SatMaps::SavePageWithState.call(page, :state_name_validated!)
+      }
+        .to_result
     end
 
     def to_invalid_names(page)
+      print 'F'
       Try {
-        print 'F'
         SatMaps::SavePageWithState.call(page, :state_invalid_name!)
       }
+        .to_result
         .bind { Failure(:next_page) }
     end
 

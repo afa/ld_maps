@@ -2,10 +2,11 @@ all: lint test
 lint: rubocop
 test: rspec
 
-build:
+build: Gemfile.lock
 	bundle install
 rubocop: build
 	rubocop
+	reek
 rspec: build
 	rspec
 run:

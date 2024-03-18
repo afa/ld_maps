@@ -47,12 +47,6 @@ class Gen < BaseInteractor
     SatMaps::LoadPages.call(&:state_checked)
   end
 
-  # -----------------
-  # def load_links(list)
-  #   list.bind { |item| extract_links(item, /download-map.php/) }.bind { |mech| [load_single_gif(mech)] }
-  #   list.bind { |item| extract_links(item, /download-ref.php/) }.bind { |mech| [load_single_map(mech)] }
-  # end
-
   def load_single_gif(m_lnk)
     hsh = m_lnk.uri.query.split('&').map{|s| s.split('=') }.inject({}){|r, i| r.merge Hash[*i] }
     ld_it(m_lnk, "#{hsh['s']}-#{hsh['map']}.gif")

@@ -20,7 +20,7 @@ module SatMaps
         list = yield SatMaps::FetchUrl.call(page.url, session:).bind { |mech| parse_file_links(mech) }
         yield build_file_links(page, list)
         [
-          SatMaps::SavePageWithState.call(page, :state_checked!) { |p| p.files = list }
+          SatMaps::SavePageWithState.call(page, :state_checked!, ->(p) { p.files = list })
         ]
       end
         .typed(Try)

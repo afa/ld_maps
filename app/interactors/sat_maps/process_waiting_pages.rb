@@ -19,9 +19,11 @@ module SatMaps
             names = yield extract_names(resp)
             yield store_temporary(names[:filename], resp)
             Success(
-              SatMaps::SavePageWithState.call(page, :state_validating!) do |p|
-                p.set_fields(names, %i[filename query_filename request_filename])
-              end
+              SatMaps::SavePageWithState.call(
+                page,
+                :state_validating!,
+                ->(p) { p.set_fields(names, %i[filename query_filename request_filename]) }
+              )
             )
           end
             .or { print_fail }
