@@ -1,11 +1,5 @@
-require 'dry/types'
-require 'dry/struct'
-module Types
-  include Dry::Types()
-end
-
 module SatMaps
-  class MapNameStruct < Dry::Struct
+  class MapNameStruct < BaseStruct
     attribute :size, Types::String
     attribute :row, Types::String
     attribute? :column, Types::String.optional

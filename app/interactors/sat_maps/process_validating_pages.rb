@@ -45,14 +45,13 @@ module SatMaps
         return Failure(:zero_file_size) if File.new(file(page)).stat.size.zero?
         # rubocop:enable Style/ZeroLengthPredicate
 
-        print '.'
         Success()
       }.to_result
     end
 
     def back_to_reload(page)
       Try {
-        print 'F'
+        print '-'
         FileUtils.rm_f(file(page))
         SatMaps::SavePageWithState.call(page, :state_waiting!)
       }
@@ -60,7 +59,6 @@ module SatMaps
     end
 
     def validate_names(page)
-      print '.'
       Try {
         qname =  SatMaps::ParseMapName.call(page.query_filename)
         rname =  SatMaps::ParseMapName.call(page.request_filename)
