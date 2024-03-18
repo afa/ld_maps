@@ -31,6 +31,8 @@ class Gen < BaseInteractor
     puts 'scan'
     yield SatMaps::ProcessWaitingPages.call(session:)
     puts 'wait'
+    yield SatMaps::ProcessValidatingPages.call(session:)
+    puts 'validating'
 
     pp(
       Page
@@ -44,12 +46,6 @@ class Gen < BaseInteractor
   def load_checked_pages
     SatMaps::LoadPages.call(&:state_checked)
   end
-
-  # -----------------
-  # def load_links(list)
-  #   list.bind { |item| extract_links(item, /download-map.php/) }.bind { |mech| [load_single_gif(mech)] }
-  #   list.bind { |item| extract_links(item, /download-ref.php/) }.bind { |mech| [load_single_map(mech)] }
-  # end
 
   def load_single_gif(m_lnk)
     hsh = m_lnk.uri.query.split('&').map{|s| s.split('=') }.inject({}){|r, i| r.merge Hash[*i] }
@@ -93,7 +89,8 @@ class Gen < BaseInteractor
   #           # p lnk3
   #           page3 = yield do_retry{ lnk3.click }
   #           page3.links_with(href: /show-map-#{sz}\.php/).each do |lnkmap|
-  #             next if skip_templates.size > 0 && lnkmap.uri.to_s.split('?').last =~ /id_map=(#{ skip_templates.join('|') }).*/
+  #             next if skip_templates.size > 0
+  #             && lnkmap.uri.to_s.split('?').last =~ /id_map=(#{ skip_templates.join('|') }).*/
   #             puts lnkmap.uri.to_s.split('?').last
   #             map = yield do_retry{ lnkmap.click }
   #             map.links_with(href: /download-map\.php/).each do |m_lnk|

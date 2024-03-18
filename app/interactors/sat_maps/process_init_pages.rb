@@ -6,7 +6,7 @@ module SatMaps
       /^genshtab.php\?l=[a-z]{1,2}$/ => { lvl: 1 },
       /^genshtab.php\?sq=[0-9a-z]{2,4}/ => { lvl: 2 },
       /^genshtab.php\?lst=[a-z0-9_]{4,}/ => { lvl: 3 },
-      /^http:\/\/satmaps\.info\/map\.php\?s=/ => { lvl: 4 } # %r for regexps
+      %r{^http://satmaps\.info/map\.php\?s=} => { lvl: 4 } # %r for regexps
     }.freeze
 
     def call
@@ -22,7 +22,7 @@ module SatMaps
         list = yield SatMaps::FetchUrl.call(page.url, session:).bind { |mech| parse_page_links(mech) }
         yield build_page_links(page, list)
         [
-          SatMaps::SavePageWithState.call(page, :state_scaned!) { |p| p.links = list }
+          SatMaps::SavePageWithState.call(page, :state_scaned!, ->(p) { p.links = list })
         ]
       end
         .typed(Try)

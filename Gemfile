@@ -12,11 +12,13 @@ gem 'oj'
 gem 'dry-initializer'
 gem 'dry-monads'
 gem 'dry-types'
+gem 'dry-struct'
 group :test, :development do
   gem 'rspec'
   gem 'rubocop'
   gem 'rubocop-sequel'
   gem 'rubocop-rspec'
+  gem 'reek'
 #   gem 'rspec-rails'
 #   gem 'factory_girl_rails'
 end

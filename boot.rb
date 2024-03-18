@@ -3,7 +3,7 @@ require 'bundler/setup' if File.exist?(ENV['BUNDLE_GEMFILE'])
 
 require 'sequel'
 require 'yaml'
-require_relative './app'
+require_relative 'app'
 
 $LOAD_PATH << File.expand_path('../app/interactors', __FILE__)
 

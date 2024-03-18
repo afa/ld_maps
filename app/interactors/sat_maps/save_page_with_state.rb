@@ -2,13 +2,14 @@ module SatMaps
   class SavePageWithState < BaseInteractor
     param :page
     param :state
+    param :lmbd, default: -> { ->(og) {} }
 
-    def call(&blk)
-      Try do
+    def call
+      Try {
         page.public_send(state)
-        blk.call(page)
+        lmbd.call(page)
         page.save_changes
-      end
+      }
         .to_result
     end
   end
