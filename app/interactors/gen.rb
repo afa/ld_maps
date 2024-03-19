@@ -33,6 +33,8 @@ class Gen < BaseInteractor
     puts 'wait'
     yield SatMaps::ProcessValidatingPages.call(session:)
     puts 'validating'
+    yield SatMaps::ProcessNameValidatedPages.call(session:)
+    puts 'name validated'
 
     pp(
       Page
