@@ -59,10 +59,16 @@ module SatMaps
     end
 
     def validate_names(page)
+      take_name(page.query_filename).bind { |qname|
+        take_name(page.request_filename).bind { |rname|
+          compare_names(qname, rname)
+        }
+      }
+    end
+
+    def take_name(str)
       Try {
-        qname =  SatMaps::ParseMapName.call(page.query_filename)
-        rname =  SatMaps::ParseMapName.call(page.request_filename)
-        compare_names(qname, rname)
+        SatMaps::ParseMapName.call(str)
       }
         .to_result
     end
