@@ -5,5 +5,4 @@ module Types
   include Dry::Types()
 end
 
-class BaseStruct < Dry::Struct
-end
+class BaseStruct < Dry::Struct; end

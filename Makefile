@@ -8,7 +8,7 @@ rubocop: build
 	rubocop
 	reek
 rspec: build
-	rspec
+	rspec -r./boot
 run:
 	thor gen25
 badfiles:

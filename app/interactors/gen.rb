@@ -23,6 +23,7 @@ class Gen < BaseInteractor
   private
 
   def ld_map_gen
+    prev_counts = counts
     yield SatMaps::PrepareStartupPages.call(App.config.fetch(:maps_url))
     puts 'startup'
     yield SatMaps::ProcessInitPages.call(session:)
@@ -33,47 +34,27 @@ class Gen < BaseInteractor
     puts 'wait'
     yield SatMaps::ProcessValidatingPages.call(session:)
     puts 'validating'
-    yield SatMaps::ProcessNameValidatedPages.call(session:)
-    puts 'name validated'
+    # yield SatMaps::ProcessNameValidatedPages.call(session:)
+    # puts 'name validated'
 
-    pp(
-      Page
+    cur_counts = counts
+    (prev_counts.keys + cur_counts.keys)
+      .uniq
+      .sort
+      .each do |key|
+        o = prev_counts.fetch(key, [0, nil])
+        n = cur_counts.fetch(key, [0, nil])
+        st = o[1] || n[1]
+        dif = n[0] - o[0]
+        puts "#{st}: #{n[0]}, #{dif}"
+      end
+  end
+
+  def counts
+    Page
       .select{[state, count(state)]}
       .group(:state)
-      .sort_by { |p| p.values[:state] }
-      .each { |p| puts "#{p.state}: #{p.values[:count]}" }
-    )
-  end
-
-  def load_checked_pages
-    SatMaps::LoadPages.call(&:state_checked)
-  end
-
-  def load_single_gif(m_lnk)
-    hsh = m_lnk.uri.query.split('&').map{|s| s.split('=') }.inject({}){|r, i| r.merge Hash[*i] }
-    ld_it(m_lnk, "#{hsh['s']}-#{hsh['map']}.gif")
-  end
-
-  def load_single_map(r_lnk)
-    hsh = r_lnk.uri.query.split('&').map{|s| s.split('=') }.inject({}){|r, i| r.merge Hash[*i] }
-    ld_it(r_lnk, "#{hsh['s']}-#{hsh['map']}.map")
-  end
-
-  def ld_it(link, fname = nil)
-    resp = yield fetch_link(link)
-    resp_save(resp, fname)
-  end
-
-  def resp_save(resp, fname)
-    Try {
-      unless resp.response['content-type'] == 'text/html'
-        if resp.is_a?(Mechanize::File)
-          name = yield Maybe(fname).or(resp.filename)
-          puts name
-          resp.save(name)
-        end
-      end
-    }.to_result
+      .each_with_object({}) { |p, hsh| hsh[p.values[:state]] = [p.values[:count], p.state]}
   end
 
   # def ld_map_ggc(sz)
