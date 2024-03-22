@@ -2,9 +2,9 @@ module SatMaps
   class ComposeMapName < BaseInteractor
     param :parsed
     # abcdefghijklmno wxyz
-    ROWS_60 = %w[p q r s t u v xp xq xr xs xt xu xv]
-    ROWS_76 = %w[t u v xt xu xv]
-    ROWS_88 = %w[z xz]
+    ROWS_60 = %w[p q r s t u v xp xq xr xs xt xu xv].freeze
+    ROWS_76 = %w[t u v xt xu xv].freeze
+    ROWS_88 = %w[z xz].freeze
     def call
       result << parsed.size << parsed.row << column
       result << kvadrat unless parsed.size == '001m'
