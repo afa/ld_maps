@@ -17,4 +17,14 @@ describe SatMaps::ParseMapName do
       end
     end
   end
+
+  MapMappings::STRUCT_INVALID_MAPPING.each do |hash, str|
+    context "with #{str}" do
+      let(:name) { str }
+
+      it 'raise' do
+        expect { interactor_call }.to raise_exception
+      end
+    end
+  end
 end
