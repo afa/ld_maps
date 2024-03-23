@@ -22,21 +22,8 @@ detectors:
     - SatMaps::ProcessScanedPages#parse_file_links
     - autold
   IrresponsibleModule:
+    enabled: false
     exclude:
-    - BaseInteractor
-    - ModelInteractor
-    - SatMaps::FetchUrl
-    - SatMaps::LoadPages
-    - SatMaps::MapNameStruct
-    - Types
-    - SatMaps::ParseMapName
-    - SatMaps::PrepareStartupPages
-    - SatMaps::ProcessInitPages
-    - SatMaps::ProcessScanedPages
-    - SatMaps::ProcessValidatingPages
-    - SatMaps::ProcessWaitingPages
-    - SatMaps::SavePageWithState
-    - Page
     - App
   NestedIterators:
     exclude:

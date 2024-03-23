@@ -4,10 +4,12 @@ test: rspec
 
 build: Gemfile.lock
 	bundle install
-rubocop: build
+Gemfile.lock: Gemfile
+	bundle install
+rubocop: Gemfile.lock
 	rubocop
 	reek
-rspec: build
+rspec: Gemfile.lock
 	rspec -r./boot
 run:
 	thor gen25
