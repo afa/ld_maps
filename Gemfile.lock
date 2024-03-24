@@ -115,6 +115,9 @@ GEM
       rubocop (~> 1.41)
     rubocop-factory_bot (2.24.0)
       rubocop (~> 1.33)
+    rubocop-performance (1.20.2)
+      rubocop (>= 1.48.1, < 2.0)
+      rubocop-ast (>= 1.30.0, < 2.0)
     rubocop-rspec (2.25.0)
       rubocop (~> 1.40)
       rubocop-capybara (~> 2.17)
@@ -153,6 +156,7 @@ DEPENDENCIES
   reek
   rspec
   rubocop
+  rubocop-performance
   rubocop-rspec
   rubocop-sequel
   sequel
