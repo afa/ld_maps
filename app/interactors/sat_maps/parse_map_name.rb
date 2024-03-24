@@ -3,8 +3,12 @@ module SatMaps
     param :name
 
     SIZES = %(001m 500k 200k 100k).freeze
+    ROWS_60 = %w[p q r s t u v xp xq xr xs xt xu xv].freeze
+    ROWS_76 = %w[t u v xt xu xv].freeze
+    ROWS_88 = %w[z xz].freeze
 
     def call
+      # split.extract_size
       yield split
         .fmap { |list| extract_size(list) }
         .fmap { |list| extract_row(list) }
@@ -68,7 +72,7 @@ module SatMaps
     end
 
     def parse_row(str)
-      str[0, 2].tr('0123456789_-', '')
+      str[0, 2].tr('0123456789_', '')
     end
 
     def parse_column(str)
