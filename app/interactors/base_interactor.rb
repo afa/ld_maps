@@ -14,4 +14,6 @@ class BaseInteractor
       new(*args, **kwargs).call(&)
     end
   end
+
+  class Error < StandardError; end
 end

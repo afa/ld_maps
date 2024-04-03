@@ -5,12 +5,12 @@ describe SatMaps::ComposeMapName do
   let(:interactor_call) { described_class.call(map_name) }
   let(:map_name) { SatMaps::MapNameStruct.new(name_hash) }
 
-  MapMappings::STRUCT_NAME_MAPPING.each do |hash, str|
+  MapMappings::STRUCT_NAME_MAPPING.each do |hash, str, valid_str|
     context "with #{str}" do
       let(:name_hash) { hash }
 
       it 'returns valid name' do
-        expect(interactor_call).to eq(str)
+        expect(interactor_call).to eq(valid_str || str)
       end
     end
   end

@@ -4,7 +4,7 @@ require_relative '../../data/map_mappings'
 describe SatMaps::ParseMapName do
   let(:interactor_call) { described_class.call(name) }
 
-  MapMappings::STRUCT_NAME_MAPPING.each do |hash, str|
+  MapMappings::STRUCT_NAME_MAPPING.each do |hash, str, valid_str|
     context "with #{str}" do
       let(:name) { str }
 
@@ -23,7 +23,7 @@ describe SatMaps::ParseMapName do
       let(:name) { str }
 
       it 'raise' do
-        expect { interactor_call }.to raise_exception
+        expect { interactor_call }.to raise_exception(SatMaps::ParseMapName::ParsingError)
       end
     end
   end
