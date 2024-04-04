@@ -27,4 +27,18 @@ describe SatMaps::ParseMapName do
       end
     end
   end
+
+  MapMappings::STRUCT_BAD_MAPPING.each do |hash, str|
+    context "with #{str}" do
+      let(:name) { str }
+
+      it 'not raise' do
+        expect { interactor_call }.not_to raise_exception
+      end
+
+      it 'return valid struct' do
+        expect(interactor_call).to eq(SatMaps::MapNameStruct.new(hash))
+      end
+    end
+  end
 end

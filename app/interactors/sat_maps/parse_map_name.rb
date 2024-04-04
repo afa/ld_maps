@@ -3,6 +3,12 @@ module SatMaps
     param :name
 
     SIZES = %(001m 500k 200k 100k).freeze
+    METHODS_FOR_SIZE = {
+      '001m' => :parse10,
+      '500k' => :parse05,
+      '200r' => :parse02,
+      '100k' => :parse01
+    }.freeze
     ROWS_60 = %w[p q r s t u v xp xq xr xs xt xu xv].freeze
     ROWS_76 = %w[t u v xt xu xv].freeze
     ROWS_88 = %w[z xz].freeze
@@ -34,25 +40,14 @@ module SatMaps
     end
 
     def parse_map(size, list)
-      case size
-      when '001m'
-        parse10(list)
-      when '500k'
-        parse5(list)
-      when '200k'
-        parse2(list)
-      when '100k'
-        parse1(list)
-      else
-        parse_tail(list)
-      end
+      METHODS_FOR_SIZE.fetch(size, :parse_tail).to_proc.call(self, list)
     end
 
     def parse10(list)
       row = yield parse_row10(list)
       row_list = parse_col10(row, list)
       row_list.bind { |r| parse_tail(r) }
-      row_list.bind { |r| r.typed(Maybe).traverse }
+      row_list.bind { |r| r.fmap { |item| Maybe(item) }.typed(Maybe).traverse }
     end
 
     def parse_row10(list)
@@ -63,30 +58,32 @@ module SatMaps
 
     def parse_col10(row, list)
       l = list
+      c = yield l.head
+      e = c.gsub(/[^1234567890_,]/, '')
       if ROWS_88.include?(row)
-        rl = []
-      else
+        return list.fmap { |item| Maybe(item) }.typed(Maybe).traverse unless e.empty?
+
+        return list.tail.fmap { |item| Maybe(item) }.typed(Maybe).traverse
+      end
+
+      if e.empty?
+        l = list.tail
         c = yield l.head
         e = c.gsub(/[^1234567890_,]/, '')
-        if e.empty?
-          l = list.tail
-          c = yield l.head
-          e = c.gsub(/[^1234567890_,]/, '')
-        end
-        rl = e.split(/[_,]/)
       end
-      if ROWS_88.include?(row)
-        # hash.merge!(column: nil)
-      elsif ROWS_76.include?(row)
+      rl = e.split(/[_,]/)
+      if ROWS_76.include?(row)
         return None() unless rl.size == 4
+
         hash.merge!(joined_column: rl)
       elsif ROWS_60.include?(row)
         return None() unless rl.size == 2
+
         hash.merge!(joined_column: rl)
       else
         hash.merge!(column: rl.first)
       end
-      l.tail.typed(Maybe).tap{|x|pp x}.traverse
+      l.tail.typed(Maybe).traverse
     end
 
     def parse_tail(list)

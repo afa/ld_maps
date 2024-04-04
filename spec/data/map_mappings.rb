@@ -11,8 +11,10 @@ module MapMappings
   ].freeze
   STRUCT_INVALID_MAPPING = [
     [{ size: '001m', row: 't', joined_column: %w[1 2] }, '001m-t-1_2'],
-    [{ size: '001m', row: 'z', joined_column: %w[1 2] }, '001m-z-1_2'],
-    [{ size: '001m', row: 'z', column: '1' }, '001m-z-1'],
     [{ size: '001m', row: 'p', joined_column: %w[1 2 3 4] }, '001m-p-1_2_3_4']
+  ].freeze
+  STRUCT_BAD_MAPPING = [
+    [{ size: '001m', row: 'z', tail: %w[1_2] }, '001m-z-1_2'],
+    [{ size: '001m', row: 'z', tail: ['1'] }, '001m-z-1']
   ].freeze
 end
