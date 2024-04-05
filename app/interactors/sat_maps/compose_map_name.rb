@@ -10,7 +10,7 @@ module SatMaps
     def call
       result << parsed.size << parsed.row << column
       result << kvadrat unless parsed.size == '001m'
-      result.join('-')
+      result.compact.join('-')
     end
 
     private
@@ -18,7 +18,7 @@ module SatMaps
     def column
       return parsed.column unless ROWS_60.include?(parsed.row)
 
-      return '' if ROWS_88.include?(parsed.row)
+      return nil if ROWS_88.include?(parsed.row)
 
       return parsed.joined_column.first(4).join('_') if ROWS_76.include?(parsed.row)
 
