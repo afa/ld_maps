@@ -44,46 +44,84 @@ module SatMaps
     end
 
     def parse10(list)
-      row = yield parse_row10(list)
+      row = yield parse_row(list)
       row_list = parse_col10(row, list)
       row_list.bind { |r| parse_tail(r) }
       row_list.bind { |r| r.fmap { |item| Maybe(item) }.typed(Maybe).traverse }
     end
 
-    def parse_row10(list)
+    def parse_row(list)
       row = Maybe(list.head.bind { |h| h[0, 2].tr('0123456789_', '') })
       hash[:row] = yield row
       row
     end
 
     def parse_col10(row, list)
-      l = list
-      c = yield l.head
-      e = c.gsub(/[^1234567890_,]/, '')
+      parse_col(row, list) do |row, rl|
+        if ROWS_76.include?(row)
+          return None() unless rl.size == 4
+
+          hash.merge!(joined_column: rl)
+        elsif ROWS_60.include?(row)
+          return None() unless rl.size == 2
+
+          hash.merge!(joined_column: rl)
+        else
+          hash.merge!(column: rl.first)
+        end
+      end
+    end
+
+    def parse_col(row, list)
+      e = check_col(list)
       if ROWS_88.include?(row)
         return list.fmap { |item| Maybe(item) }.typed(Maybe).traverse unless e.empty?
 
         return list.tail.fmap { |item| Maybe(item) }.typed(Maybe).traverse
       end
 
+      l = e.empty? ? list.tail : list
       if e.empty?
-        l = list.tail
-        c = yield l.head
-        e = c.gsub(/[^1234567890_,]/, '')
+        e = check_col(list.tail)
       end
       rl = e.split(/[_,]/)
-      if ROWS_76.include?(row)
-        return None() unless rl.size == 4
+      yield(row, rl)
+      l.tail.fmap { |i| Maybe(i) }.typed(Maybe).traverse
+    end
 
-        hash.merge!(joined_column: rl)
-      elsif ROWS_60.include?(row)
-        return None() unless rl.size == 2
+    def check_col(list)
+      c = yield list.head
+      c.gsub(/[^1234567890_,]/, '')
+    end
 
-        hash.merge!(joined_column: rl)
-      else
+    def parse05(list)
+      row = yield parse_row(list)
+      row_list = parse_col05(row, list).bind { |lst|
+        parse_kvadrat05(row, lst)
+      }
+      row_list.bind { |r| parse_tail(r) }
+      row_list.bind { |r| r.fmap { |item| Maybe(item) }.typed(Maybe).traverse }
+    end
+
+    def parse_col05(row, list)
+      parse_col(row, list) do |row, rl|
+        return None() unless rl.size == 1
+
         hash.merge!(column: rl.first)
       end
-      l.tail.typed(Maybe).traverse
+    end
+
+    def parse_kvadrat05(row, list)
+      str = yield list.head
+      kv = str.split(/[_,]/)
+      if ROWS_60.include?(row)
+        return None() unless kv.size == 2
+
+        hash[:joined_kvadrat] = kv
+      else
+        hash[:kvadrat] = kv.first
+      end
+      list.tail.fmap { |i| Maybe(i) }.typed(Maybe).traverse
     end
 
     def parse_tail(list)
@@ -151,23 +189,23 @@ module SatMaps
         .maybe { |_| hash.merge!(tail: list.value.map { |i| i.nil? ? '' : i }) unless list.value.empty? }
     end
 
-    def parse_row(str)
-      str[0, 2].tr('0123456789_', '')
-    end
+    # def parse_row(str)
+    #   str[0, 2].tr('0123456789_', '')
+    # end
 
-    def parse_column(str)
-      lst = str.gsub(/[^1234567890_,]/, '').split(/[_,]/)
-      return { column: lst.first } if lst.size == 1
+    # def parse_column(str)
+    #   lst = str.gsub(/[^1234567890_,]/, '').split(/[_,]/)
+    #   return { column: lst.first } if lst.size == 1
 
-      { joined_column: lst }
-    end
+    #   { joined_column: lst }
+    # end
 
-    def parse_kvadrat(str)
-      lst = str.split(/[_,]/)
-      return { kvadrat: lst.first } if lst.size == 1
+    # def parse_kvadrat(str)
+    #   lst = str.split(/[_,]/)
+    #   return { kvadrat: lst.first } if lst.size == 1
 
-      { joined_kvadrat: lst }
-    end
+    #   { joined_kvadrat: lst }
+    # end
 
     def hash
       @hash ||= {}
