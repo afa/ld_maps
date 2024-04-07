@@ -4,7 +4,7 @@ require_relative '../../data/map_mappings'
 describe SatMaps::ParseMapName do
   let(:interactor_call) { described_class.call(name) }
 
-  MapMappings::STRUCT_NAME_MAPPING.each do |hash, str, valid_str|
+  MapMappings::STRUCT_NAME_MAPPING.each do |hash, str, _valid_str|
     context "with #{str}" do
       let(:name) { str }
 
@@ -18,7 +18,8 @@ describe SatMaps::ParseMapName do
     end
   end
 
-  MapMappings::STRUCT_INVALID_MAPPING.each do |hash, str|
+  # rubocop:disable Style/HashEachMethods
+  MapMappings::STRUCT_INVALID_MAPPING.each do |_hash, str|
     context "with #{str}" do
       let(:name) { str }
 
@@ -27,6 +28,7 @@ describe SatMaps::ParseMapName do
       end
     end
   end
+  # rubocop:enable Style/HashEachMethods
 
   MapMappings::STRUCT_BAD_MAPPING.each do |hash, str|
     context "with #{str}" do

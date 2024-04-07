@@ -57,12 +57,12 @@ module SatMaps
     end
 
     def parse_col10(row, list)
-      parse_col(row, list) do |row, rl|
-        if ROWS_76.include?(row)
+      parse_col(row, list) do |rr, rl|
+        if ROWS_76.include?(rr)
           return None() unless rl.size == 4
 
           hash.merge!(joined_column: rl)
-        elsif ROWS_60.include?(row)
+        elsif ROWS_60.include?(rr)
           return None() unless rl.size == 2
 
           hash.merge!(joined_column: rl)
@@ -81,9 +81,8 @@ module SatMaps
       end
 
       l = e.empty? ? list.tail : list
-      if e.empty?
-        e = check_col(list.tail)
-      end
+      e = check_col(list.tail) if e.empty?
+
       rl = e.split(/[_,]/)
       yield(row, rl)
       l.tail.fmap { |i| Maybe(i) }.typed(Maybe).traverse
@@ -104,7 +103,7 @@ module SatMaps
     end
 
     def parse_col05(row, list)
-      parse_col(row, list) do |row, rl|
+      parse_col(row, list) do |_rr, rl|
         return None() unless rl.size == 1
 
         hash.merge!(column: rl.first)
