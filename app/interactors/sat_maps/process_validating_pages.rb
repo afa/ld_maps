@@ -69,10 +69,7 @@ module SatMaps
     end
 
     def take_name(str)
-      Try {
         SatMaps::ParseMapName.call(str)
-      }
-        .to_result
     end
 
     def compare_names(qname, rname)

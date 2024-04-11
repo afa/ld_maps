@@ -6,6 +6,7 @@ require 'yaml'
 require_relative 'app'
 
 $LOAD_PATH << File.expand_path('../app/interactors', __FILE__)
+$LOAD_PATH << File.expand_path('../app/validators', __FILE__)
 
 # autoload classes (app/)
 def autold(path)

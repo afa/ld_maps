@@ -46,7 +46,7 @@ module SatMaps
 
     def setup_final_name(page)
       # make struct from file names, build result file name, store to final
-      map = SatMaps::ParseMapName.call(page.request_filename)
+      map = yield SatMaps::ParseMapName.call(page.request_filename)
       SatMaps::ComposeMapName.call(map).fmap { |name| SatMaps::StorePage.call(page, { final_filename: name }) }
     end
 

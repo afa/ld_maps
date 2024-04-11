@@ -3,24 +3,29 @@ module SatMaps
     param :name
 
     SIZES = %(001m 500k 200k 100k).freeze
+    ROWS_88 = %w[z xz].freeze
     METHODS_FOR_SIZE = {
       '001m' => :parse10,
       '500k' => :parse05,
-      '200r' => :parse02,
+      '200k' => :parse02,
       '100k' => :parse01
     }.freeze
-    ROWS_60 = %w[p q r s t u v xp xq xr xs xt xu xv].freeze
-    ROWS_76 = %w[t u v xt xu xv].freeze
-    ROWS_88 = %w[z xz].freeze
 
     def call
-      list = split2
-      parse_size(list)
+      list = split
+      row_list = parse_size(list)
         .or { raise ParsingError.new(message: 'In parse size') }
-        .bind { |size| parse_map(size, list.tail) }
-        .or { raise ParsingError.new(message: 'In parse map') }
+        .bind { |size| parse_row(list.tail) }
+      col_list = take_column(check_column(row_list) ? row_list : row_list.tail)
+        .bind { |item| extract_year(item) ? [] : [item] }
+      tail_list = parse_kvadrat(col_list)
+      parse_tail(tail_list)
       pp hash
-      MapNameStruct.new(hash)
+      SatMaps::ParseMapNameContract
+        .new
+        .call(hash)
+        .to_monad
+        .fmap { |c| SatMaps::MapNameStruct.new(c.to_h) }
 
       # yield split
       #   .fmap { |list| extract_size(list) }
@@ -35,8 +40,75 @@ module SatMaps
 
     private
 
-    def split2
+    def split
       List(name.split('.').first.split('-')).bind { |s| s.empty? ? [] : [s] }
+    end
+
+    def parse_size(list)
+      list
+        .head
+        .maybe { |s| SIZES.include?(s) ? s : nil }
+        .fmap { |s| hash[:size] = s }
+    end
+
+    def parse_row(list)
+      row = Maybe(list.head.bind { |h| h[0, 2].tr('0123456789_,', '') })
+      hash[:row] = yield row
+      list
+    end
+
+    def check_column(list)
+      c = yield list.head
+      !strip_digits(c).empty?
+    end
+
+    def strip_digits(c)
+      c.gsub(/[^1234567890_,]/, '')
+    end
+
+    def take_column(list)
+      if with_columns?
+        c = yield list.head
+        cols = strip_digits(c).split(/[_,]/)
+        if cols.size == 1
+          hash[:column] = cols.first
+        else
+          hash[:joined_column] = cols
+        end
+        list.tail
+      else
+        list
+      end
+    end
+
+    def with_columns?
+      !ROWS_88.include?(hash[:row])
+    end
+
+    def with_kvadrat?
+      hash[:size] != '001m'
+    end
+
+    def parse_kvadrat(list)
+      if with_kvadrat?
+        c = yield list.head
+        cols = strip_digits(c).split(/[_,]/)
+        if cols.size == 1
+          hash[:kvadrat] = cols.first
+        else
+          hash[:joined_kvadrat] = cols
+        end
+        list.tail
+      else
+        list
+      end
+    end
+
+    def extract_year(item)
+      /^\(([1234567890]{4})\)$/.match(item) do |m|
+        hash[:special] ||= {}
+        hash[:special][:year] = m[1]
+      end.tap{|x|pp x}
     end
 
     def parse_map(size, list)
@@ -48,12 +120,6 @@ module SatMaps
       row_list = parse_col10(row, list)
       row_list.bind { |r| parse_tail(r) }
       row_list.bind { |r| r.fmap { |item| Maybe(item) }.typed(Maybe).traverse }
-    end
-
-    def parse_row(list)
-      row = Maybe(list.head.bind { |h| h[0, 2].tr('0123456789_', '') })
-      hash[:row] = yield row
-      row
     end
 
     def parse_col10(row, list)
@@ -118,6 +184,44 @@ module SatMaps
 
         hash[:joined_kvadrat] = kv
       else
+        return None() unless kv.size == 1
+
+        hash[:kvadrat] = kv.first
+      end
+      list.tail.fmap { |i| Maybe(i) }.typed(Maybe).traverse
+    end
+
+    def parse02(list)
+      row = yield parse_row(list)
+      row_list = parse_col02(row, list).bind { |lst|
+        parse_kvadrat02(row, lst)
+      }
+      row_list.bind { |r| parse_tail(r) }
+      row_list.bind { |r| r.fmap { |item| Maybe(item) }.typed(Maybe).traverse }
+    end
+
+    def parse_col02(row, list)
+      parse_col(row, list) do |_rr, rl|
+        return None() unless rl.size == 1
+
+        hash.merge!(column: rl.first)
+      end
+    end
+
+    def parse_kvadrat02(row, list)
+      str = yield list.head
+      kv = str.split(/[_,]/)
+      if ROWS_76.include?(row)
+        return None() unless kv.size == 3
+
+        hash[:joined_kvadrat] = kv
+      elsif ROWS_60.include?(row)
+        return None() unless kv.size == 2
+
+        hash[:joined_kvadrat] = kv
+      else
+        return None() unless kv.size == 1
+
         hash[:kvadrat] = kv.first
       end
       list.tail.fmap { |i| Maybe(i) }.typed(Maybe).traverse
@@ -125,68 +229,61 @@ module SatMaps
 
     def parse_tail(list)
       Try {
-        hash.merge!(tail: list.value) unless list.value.empty?
+        hash.merge!(tail: list.value.compact) unless list.value.compact.empty?
       }
         .to_result
     end
 
     # --------------
 
-    def split
-      Maybe(List(name.split('.').first.split('-').map { |s| s.empty? ? nil : s }))
-    end
+    # def split
+    #   Maybe(List(name.split('.').first.split('-').map { |s| s.empty? ? nil : s }))
+    # end
 
-    def parse_size(list)
-      list
-        .head
-        .maybe { |s| SIZES.include?(s) ? s : nil }
-        .fmap { |s| hash[:size] = s }
-    end
+    # def extract_size(list)
+    #   list
+    #     .head
+    #     .maybe { |s| SIZES.include?(s) ? s : nil }
+    #     .fmap { |s| hash[:size] = s }
+    #     .or { List([]) }
+    #     .bind { list.tail }
+    # end
 
-    def extract_size(list)
-      list
-        .head
-        .maybe { |s| SIZES.include?(s) ? s : nil }
-        .fmap { |s| hash[:size] = s }
-        .or { List([]) }
-        .bind { list.tail }
-    end
+    # def extract_row(list)
+    #   list
+    #     .head
+    #     .fmap { |s| hash[:row] = parse_row(s) }
+    #     .or {
+    #       list
+    #         .tail
+    #         .head
+    #         .fmap { |s| parse_row(s) }
+    #     }
+    #     .fmap { |s| hash[:row] = s }
+    #     .or { List([]) }
+    #     .bind { list.tail }
+    # end
 
-    def extract_row(list)
-      list
-        .head
-        .fmap { |s| hash[:row] = parse_row(s) }
-        .or {
-          list
-            .tail
-            .head
-            .fmap { |s| parse_row(s) }
-        }
-        .fmap { |s| hash[:row] = s }
-        .or { List([]) }
-        .bind { list.tail }
-    end
+    # def extract_column(list)
+    #   list
+    #     .head
+    #     .fmap { |s| hash.merge!(parse_column(s)) }
+    #     .or { List([]) }
+    #     .bind { |_| list.tail }
+    # end
 
-    def extract_column(list)
-      list
-        .head
-        .fmap { |s| hash.merge!(parse_column(s)) }
-        .or { List([]) }
-        .bind { |_| list.tail }
-    end
+    # def extract_kvadrat(list)
+    #   list
+    #     .head
+    #     .fmap { |s| hash.merge!(parse_kvadrat(s)) }
+    #     .or { List([]) }
+    #     .bind { |_| list.tail }
+    # end
 
-    def extract_kvadrat(list)
-      list
-        .head
-        .fmap { |s| hash.merge!(parse_kvadrat(s)) }
-        .or { List([]) }
-        .bind { |_| list.tail }
-    end
-
-    def extract_tail(list)
-      Maybe(list.value)
-        .maybe { |_| hash.merge!(tail: list.value.map { |i| i.nil? ? '' : i }) unless list.value.empty? }
-    end
+    # def extract_tail(list)
+    #   Maybe(list.value)
+    #     .maybe { |_| hash.merge!(tail: list.value.map { |i| i.nil? ? '' : i }) unless list.value.empty? }
+    # end
 
     # def parse_row(str)
     #   str[0, 2].tr('0123456789_', '')
