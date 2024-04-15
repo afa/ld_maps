@@ -17,14 +17,17 @@ module SatMaps
 
     def validate_for(pages)
       pages.bind do |page|
-        Try {
-          print '.'
-          yield setup_extension(page)
-          yield setup_final_name(page)
-          yield rename_file(page)
-        }
-          .to_result
-          .bind { forward(page) }
+        [
+          Try {
+            print '.'
+            yield setup_extension(page)
+            yield setup_final_name(page)
+            yield rename_file(page)
+          }
+            .to_result
+            .bind { forward(page) }
+            .or { Success() }
+        ]
       end
         .typed(Try)
         .traverse
@@ -46,17 +49,32 @@ module SatMaps
 
     def setup_final_name(page)
       # make struct from file names, build result file name, store to final
-      map = yield SatMaps::ParseMapName.call(page.request_filename)
-      SatMaps::ComposeMapName.call(map).fmap { |name| SatMaps::StorePage.call(page, { final_filename: name }) }
+      SatMaps::ParseMapName.call(page.request_filename).bind { |map|
+        prefix = File.join(page.files['kind'], map.size, map.row)
+        SatMaps::ComposeMapName.call(map).bind { |name|
+          SatMaps::StorePage.call(page, { final_filename: name, prefix_path: prefix }) 
+        }
+      }
+        .or { |f| back(page) }
     end
 
     def rename_file(page)
-      Success()
+      Try {
+        FileUtils.mkdir_p(File.join(App.config[:files_base_path], page.prefix_path))
+        FileUtils.mv(
+          File.join(App.config[:temporary_path], page.filename),
+          File.join(App.config[:files_base_path], page.prefix_path, "#{page.final_filename}.#{page.extension}")
+        )
+      }
+        .to_result
+    end
+
+    def back(page)
+      SatMaps::SavePageWithState.call(page, :state_validating!)
     end
 
     def forward(page)
-      # to stored
-      Success()
+      SatMaps::SavePageWithState.call(page, :state_stored!)
     end
   end
 end

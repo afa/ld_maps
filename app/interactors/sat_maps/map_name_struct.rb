@@ -7,7 +7,7 @@ module SatMaps
     attribute? :kvadrat, Types::String.optional
     attribute? :joined_kvadrat, Types::Array.of(Types::String)
     attribute? :special do
-      attribute? :year, Types::Coercible::Integer.optional
+      attribute? :year, Types::String.optional
     end
     attribute? :tail, Types::Array.of(Types::String)
   end

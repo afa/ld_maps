@@ -34,8 +34,8 @@ class Gen < BaseInteractor
     puts 'wait'
     yield SatMaps::ProcessValidatingPages.call(session:)
     puts 'validating'
-    # yield SatMaps::ProcessNameValidatedPages.call(session:)
-    # puts 'name validated'
+    yield SatMaps::ProcessNameValidatedPages.call(session:)
+    puts 'name validated'
 
     cur_counts = counts
     (prev_counts.keys + cur_counts.keys)
