@@ -7,7 +7,9 @@ module SatMaps
     end
 
     def load_validating_pages
-      SatMaps::LoadPages.call(count: 10_000, &:state_validating)
+      SatMaps::LoadPages.call(&:state_validating)
+      # когда надо вытащить завал пользоваться параметром count
+      # SatMaps::LoadPages.call(count: 10_000, &:state_validating)
     end
 
     def validate_names_for(pages)
@@ -45,14 +47,13 @@ module SatMaps
         return Failure(:zero_file_size) if File.new(file(page)).stat.size.zero?
         # rubocop:enable Style/ZeroLengthPredicate
 
-        print '.'
         Success()
       }.to_result
     end
 
     def back_to_reload(page)
       Try {
-        print 'F'
+        print '-'
         FileUtils.rm_f(file(page))
         SatMaps::SavePageWithState.call(page, :state_waiting!)
       }
@@ -60,13 +61,15 @@ module SatMaps
     end
 
     def validate_names(page)
-      print '.'
-      Try {
-        qname =  SatMaps::ParseMapName.call(page.query_filename)
-        rname =  SatMaps::ParseMapName.call(page.request_filename)
-        compare_names(qname, rname)
+      take_name(page.query_filename).bind { |qname|
+        take_name(page.request_filename).bind { |rname|
+          compare_names(qname, rname)
+        }
       }
-        .to_result
+    end
+
+    def take_name(str)
+      SatMaps::ParseMapName.call(str)
     end
 
     def compare_names(qname, rname)
