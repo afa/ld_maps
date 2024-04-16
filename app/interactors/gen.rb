@@ -36,18 +36,17 @@ class Gen < BaseInteractor
     puts 'validating'
     yield SatMaps::ProcessNameValidatedPages.call(session:)
     puts 'name validated'
+    yield SatMaps::ProcessCheckedPages.call(session:)
+    puts 'checked'
 
     cur_counts = counts
-    (prev_counts.keys + cur_counts.keys)
-      .uniq
-      .sort
-      .each do |key|
-        o = prev_counts.fetch(key, [0, nil])
-        n = cur_counts.fetch(key, [0, nil])
-        st = o[1] || n[1]
-        dif = n[0] - o[0]
-        puts "#{st}: #{n[0]}, #{dif}"
-      end
+    (prev_counts.keys + cur_counts.keys).uniq.sort.each do |key|
+      o = prev_counts.fetch(key, [0, nil])
+      n = cur_counts.fetch(key, [0, nil])
+      st = o[1] || n[1]
+      dif = n[0] - o[0]
+      puts "#{st}: #{n[0]}, #{dif}"
+    end
   end
 
   def counts

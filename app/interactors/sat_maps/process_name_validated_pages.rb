@@ -52,10 +52,10 @@ module SatMaps
       SatMaps::ParseMapName.call(page.request_filename).bind { |map|
         prefix = File.join(page.files['kind'], map.size, map.row)
         SatMaps::ComposeMapName.call(map).bind { |name|
-          SatMaps::StorePage.call(page, { final_filename: name, prefix_path: prefix }) 
+          SatMaps::StorePage.call(page, { final_filename: name, prefix_path: prefix })
         }
       }
-        .or { |f| back(page) }
+        .or { |_| back(page) }
     end
 
     def rename_file(page)
