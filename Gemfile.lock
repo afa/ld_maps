@@ -180,6 +180,7 @@ DEPENDENCIES
   rubocop-sequel
   sequel
   thor
+  zeitwerk
 
 BUNDLED WITH
    2.4.15

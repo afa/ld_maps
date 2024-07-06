@@ -1,5 +1,5 @@
 all: lint test
-lint: rubocop
+lint: rubocop reek
 test: rspec
 
 build: Gemfile.lock
@@ -7,15 +7,16 @@ build: Gemfile.lock
 Gemfile.lock: Gemfile
 	bundle install
 rubocop: Gemfile.lock
-	rubocop
-	reek
+	bundle exec rubocop
+reek: Gemfile.lock
+	bundle exec reek
 rspec: Gemfile.lock
-	rspec -r./boot
+	bundle exec rspec -r./boot
 run:
-	thor gen25
+	bundle exec thor gen25
 badfiles:
 	find data/temp -size 0 |wc -l
 files:
 	find data/temp -type f |wc -l
 migrate:
-	sequel -m db/migrate postgres:///load_map
+	bundle exec sequel -m db/migrate postgres:///load_map
